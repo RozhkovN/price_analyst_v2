@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { StatusMessage } from "./components/ui/StatusMessage";
 import { ProfileHeader } from "./components/profile/ProfileHeader";
 import { UserRequestsSection } from "./components/profile/UserRequestsSection";
-import Footer from "./components/layout/Footer";
+// import Footer from "./components/layout/Footer";
 
 function Profile() {
   const [user] = useAtom(userAtom);
@@ -54,7 +54,7 @@ function Profile() {
           />
         </m.div>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

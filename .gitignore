@@ -1,38 +1,32 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Environment variables
+.env
+.env.*
+!.env.example
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-*.iws
-*.iml
-*.ipr
+# Nginx SSL certificates
+nginx/ssl/
+*.pem
+*.key
+*.crt
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Logs
+logs/
+*.log
+npm-debug.log*
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# IDE files
 .vscode/
+.idea/
+*.swp
+*.swo
 
-### Mac OS ###
+# OS files
 .DS_Store
+Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+
+output_backend.txt
+output_client.txt
