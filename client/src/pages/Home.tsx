@@ -12,7 +12,7 @@ import { AnalysisResults } from "./components/analysis/AnalysisResults";
 import { Instructions } from "./components/home/Instructions";
 import LoginModal from "./components/auth/LoginModal";
 import RegisterModal from "./components/auth/RegistrationModal";
-import Footer from "./components/layout/Footer";
+// import Footer from "./components/layout/Footer";
 
 function Home() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -370,7 +370,7 @@ function Home() {
           onSwitchToLogin={switchToLogin}
         />
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

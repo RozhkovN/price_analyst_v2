@@ -15,6 +15,7 @@ interface RegisterModalProps {
 interface RegisterFormData {
   inn: string;
   fullName: string;
+  email: string;
   phone: string;
   password: string;
   confirmPassword: string;
@@ -48,6 +49,7 @@ function RegisterModal({
     defaultValues: {
       inn: "",
       fullName: "",
+      email: "",
       phone: "",
       password: "",
       confirmPassword: "",
@@ -69,6 +71,7 @@ function RegisterModal({
         {
           inn: data.inn,
           fullName: data.fullName,
+          email: data.email,
           phone: data.phone,
           password: data.password,
         },
@@ -275,6 +278,38 @@ function RegisterModal({
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.phone.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Поле почты */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-blue-700"
+                >
+                  Почта *
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  {...register("email", {
+                    required: "Почта обязательна для заполнения",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+                      message: "Некорректный email",
+                    },
+                  })}
+                  placeholder="Введите email"
+                  className={`bg-blue-25 w-full rounded-lg border px-4 py-3 text-blue-900 placeholder-blue-400 focus:ring-2 focus:outline-none ${
+                    errors.email
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                      : "border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
+                  }`}
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
                   </p>
                 )}
               </div>
