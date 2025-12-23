@@ -53,6 +53,11 @@ certs/
 certbot/
 !certbot/.gitkeep
 
+### Database Backups ###
+backups/
+*.sql.gz
+!backups/.gitkeep
+
 output_backend.txt
 output_client.txt
 
