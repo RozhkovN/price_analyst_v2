@@ -59,6 +59,21 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
 
+      # Mail configuration
+      SPRING_MAIL_HOST: ${MAIL_HOST}
+      SPRING_MAIL_PORT: ${MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: "true"
+      MAIL_FROM: ${MAIL_FROM}
+      OWNER_EMAILS: ${OWNER_EMAILS}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL}
+
+      # Subscription configuration
+      SUBSCRIPTION_TRIAL_MINUTES: ${SUBSCRIPTION_TRIAL_MINUTES}
+
       # Порт приложения
       SERVER_PORT: ${SERVER_PORT}
 
@@ -84,7 +99,7 @@ services:
     volumes:
       # Для Let's Encrypt сертификатов (когда будут подключены)
       - ./certs:/etc/nginx/ssl:ro
-      - ./certbot:/var/www/certbot:ro
+      - ./certbot:/var/www/certbot
     depends_on:
       - app
     networks:

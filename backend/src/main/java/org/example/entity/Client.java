@@ -25,6 +25,9 @@ public class Client {
     @Column(unique = true, nullable = false)
     private String phone; // normalized 10 digits starting with 9
 
+    @Column(unique = true, nullable = false)
+    private String email;
+
     @Column(nullable = false)
     private String password;
 
@@ -32,6 +35,18 @@ public class Client {
     @Column(nullable = false)
     private Role role;
 
+    @Column(nullable = false)
+    private LocalDateTime subscriptionExpiredAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private SubscriptionStatus subscriptionStatus = SubscriptionStatus.ACTIVE;
+
     @Builder.Default
     private LocalDateTime registrationDate = LocalDateTime.now();
+
+    public enum SubscriptionStatus {
+        ACTIVE, EXPIRED
+    }
 }

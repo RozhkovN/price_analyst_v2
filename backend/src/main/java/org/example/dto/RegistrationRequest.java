@@ -22,6 +22,10 @@ public class RegistrationRequest {
             message = "Неверный формат телефона")
     private String phone;
 
+    @NotBlank(message = "Email не может быть пустым")
+    @Pattern(regexp = "^[A-Za-z0-9+_.-]+@(.+)$", message = "Неверный формат email")
+    private String email;
+
     @NotBlank(message = "Пароль не может быть пустым")
     @Size(min = 6, message = "Пароль должен быть не менее 6 символов")
     private String password;

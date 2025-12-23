@@ -16,6 +16,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -26,6 +29,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final SubscriptionService subscriptionService;
 
     public boolean validateInn(String inn) {
         if (inn == null) return false;
@@ -34,6 +38,7 @@ public class AuthService {
         return inn.matches("\\d+");
     }
 
+    @Transactional
     public Client registerClient(RegistrationRequest request) {
         if (!validateInn(request.getInn())) {
             throw new IllegalArgumentException("Неверный формат ИНН");
@@ -45,6 +50,7 @@ public class AuthService {
         String inn = request.getInn().replaceAll("[\\r\\n\\t]", "");
         String fullName = request.getFullName().replaceAll("[\\r\\n\\t]", "");
         String phone = normalizePhone(request.getPhone());
+        String email = request.getEmail().replaceAll("[\\r\\n\\t]", "").toLowerCase();
         String password = request.getPassword().replaceAll("[\\r\\n\\t]", "");
 
         if (phone == null) {
@@ -53,19 +59,32 @@ public class AuthService {
         if (clientRepository.findByPhone(phone).isPresent()) {
             throw new IllegalArgumentException("Клиент с таким телефоном уже зарегистрирован");
         }
+        if (clientRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Клиент с таким email уже зарегистрирован");
+        }
 
         Role role = clientRepository.count() == 0 ? Role.ADMIN : Role.USER;
+
+        // Создаем trial подписку
+        subscriptionService.createTrialSubscription(email);
+
+        // Получаем созданную подписку для установления даты истечения
+        var subscription = subscriptionService.checkSubscriptionStatus(email);
 
         Client client = Client.builder()
                 .inn(inn)
                 .fullName(fullName)
                 .phone(phone)
+                .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(role)
+                .subscriptionExpiredAt(subscription.getExpirationDate())
+                .subscriptionStatus(Client.SubscriptionStatus.ACTIVE)
                 .build();
 
         Client savedClient = clientRepository.save(client);
-        log.info("Зарегистрирован новый клиент: phone={}, inn={}, role={}", phone, inn, role);
+        log.info("Зарегистрирован новый клиент: phone={}, email={}, inn={}, role={}, подписка до: {}", 
+                phone, email, inn, role, subscription.getExpirationDate());
         return savedClient;
     }
 
