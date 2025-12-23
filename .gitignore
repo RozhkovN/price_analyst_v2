@@ -48,5 +48,13 @@ client/.env
 client/.env.local
 client/.env.*.local
 
+### SSL Certificates ###
+certs/
+certbot/
+!certbot/.gitkeep
+
 output_backend.txt
 output_client.txt
+
+setup-ssl.sh
+SSL_SETUP.md

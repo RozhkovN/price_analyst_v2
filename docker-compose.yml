@@ -79,7 +79,12 @@ services:
     container_name: price-service-client
     restart: unless-stopped
     ports:
-      - "3400:3400"
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Для Let's Encrypt сертификатов (когда будут подключены)
+      - ./certs:/etc/nginx/ssl:ro
+      - ./certbot:/var/www/certbot:ro
     depends_on:
       - app
     networks:

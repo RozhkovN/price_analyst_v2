@@ -23,6 +23,13 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Копируем конфигурацию nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 3400
+# Создаем директорию для Let's Encrypt сертификатов
+RUN mkdir -p /etc/nginx/ssl /var/www/certbot
+
+# Копируем SSL сертификаты если они есть (опционально)
+# COPY ssl/cert.pem /etc/nginx/ssl/cert.pem
+# COPY ssl/key.pem /etc/nginx/ssl/key.pem
+
+EXPOSE 80 443
 
 CMD ["nginx", "-g", "daemon off;"]
