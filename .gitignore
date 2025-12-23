@@ -36,3 +36,17 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Environment variables ###
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
+client/.env
+client/.env.local
+client/.env.*.local
+
+output_backend.txt
+output_client.txt

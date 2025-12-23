@@ -33,6 +33,7 @@ USER appuser
 EXPOSE 8400
 
 # Переменные окружения для JVM - оптимизации для больших данных
+# Все чувствительные переменные должны передаваться через docker-compose.yml или docker run
 ENV JAVA_OPTS="-Xmx2g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2"
 
 # Запуск приложения

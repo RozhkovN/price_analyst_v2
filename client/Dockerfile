@@ -3,6 +3,12 @@ FROM oven/bun:latest AS builder
 
 WORKDIR /app
 
+# Принимаем переменные окружения как build arguments
+ARG VITE_API_URL=http://localhost:8400/api
+
+# Экспортируем как переменные окружения для bun
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY . .
 
 RUN bun install --frozen-lockfile
