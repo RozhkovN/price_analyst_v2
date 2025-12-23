@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
                         .requestMatchers("/api/subscription/**").permitAll()  // Пусть контроллер сам проверяет авторизацию
                         .requestMatchers("/api/data/upload-supplier-data").hasRole("ADMIN")  // Только админ
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")  // Новый эндпоинт для админа
