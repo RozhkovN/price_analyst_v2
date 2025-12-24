@@ -90,7 +90,7 @@ public class JwtFilter extends OncePerRequestFilter {
         log.debug("isSubscriptionValid check for: {} | URI: {}", username, requestUri);
 
         // Пропускаем проверку для открытых endpoints
-        if (requestUri.contains("/api/auth/") || 
+        if (requestUri.contains("/api/auth/") ||
             requestUri.contains("/api/subscription/") ||
             requestUri.contains("/swagger") ||
             requestUri.contains("/api-docs") ||
@@ -99,31 +99,26 @@ public class JwtFilter extends OncePerRequestFilter {
             return true;
         }
 
-        // Получаем клиента по email (username = phone из JWT)
-        // Ищем по phone т.к. username = phone в JWT
-        var client = clientRepository.findByPhone(username);
-        log.debug("Looking for client by phone: {}, found: {}", username, client.isPresent());
-
-        if (client.isEmpty()) {
+        // Получаем клиента по phone (username = phone)
+        var clientOpt = clientRepository.findByPhone(username);
+        if (clientOpt.isEmpty()) {
             log.warn("Клиент не найден для username: {}", username);
             return false;
         }
 
-        Client currentClient = client.get();
-        LocalDateTime now = LocalDateTime.now();
-        
-        log.debug("Client found: {}, subscriptionExpiredAt: {}, now: {}", 
-                currentClient.getEmail(), currentClient.getSubscriptionExpiredAt(), now);
+        Client client = clientOpt.get();
 
-        // Проверяем, не истекла ли подписка
-        if (currentClient.getSubscriptionExpiredAt() != null && 
-            currentClient.getSubscriptionExpiredAt().isBefore(now)) {
-            // Обновляем статус подписки в БД
-            currentClient.setSubscriptionStatus(Client.SubscriptionStatus.EXPIRED);
-            clientRepository.save(currentClient);
-            
-            log.warn("Подписка истекла для клиента: {} (phone: {})", 
-                    currentClient.getEmail(), currentClient.getPhone());
+        // Админ всегда проходит проверку
+        if (client.getRole() == org.example.entity.Role.ADMIN) {
+            log.debug("ADMIN access granted without subscription check");
+            return true;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (client.getSubscriptionExpiredAt() != null && client.getSubscriptionExpiredAt().isBefore(now)) {
+            client.setSubscriptionStatus(Client.SubscriptionStatus.EXPIRED);
+            clientRepository.save(client);
+            log.warn("Подписка истекла для клиента: {} (phone: {})", client.getEmail(), client.getPhone());
             return false;
         }
 
