@@ -80,6 +80,8 @@ services:
       # Connection pool
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "20"
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "5"
+
+      SPRING_PROFILES_ACTIVE: prod
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     networks:

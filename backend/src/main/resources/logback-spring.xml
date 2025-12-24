@@ -1,0 +1,37 @@
+<!-- src/main/resources/logback-spring.xml -->
+<configuration>
+    <!-- JSON output for all logs -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <arguments/>
+                <stackTrace/>
+                <mdc/> <!-- для traceId и т.п. в будущем -->
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- Человекочитаемый формат для разработки (опционально) -->
+    <appender name="HUMAN_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Выбор формата: в production — JSON, в dev — человекочитаемый -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!prod">
+        <root level="DEBUG">
+            <appender-ref ref="HUMAN_CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
