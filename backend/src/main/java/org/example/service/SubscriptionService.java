@@ -7,13 +7,10 @@ import org.example.entity.Subscription;
 import org.example.repository.ClientRepository;
 import org.example.repository.SubscriptionRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -89,13 +86,8 @@ public class SubscriptionService {
             clientRepository.save(c);
         }
 
-        sendSubscriptionGrantedNotificationAsync(email, newExpirationDate.toString());
+        // ✅ УДАЛЕНО: отправка email об активации
         log.info("Подписка выдана для: {} до {}", email, newExpirationDate);
-    }
-
-    @Async
-    public void sendSubscriptionGrantedNotificationAsync(String clientEmail, String expirationDate) {
-        emailService.sendSubscriptionGrantedNotification(clientEmail, expirationDate);
     }
 
     public void requestSubscription(String email, String fileName, MultipartFile file) {
@@ -107,6 +99,7 @@ public class SubscriptionService {
     public void revokeSubscription(String email) {
         Subscription subscription = subscriptionRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("Подписка не найдена для: " + email));
+
         subscription.setStatus(Subscription.SubscriptionStatus.EXPIRED);
         subscription.setExpirationDate(LocalDateTime.now());
         subscription.setUpdatedAt(LocalDateTime.now());
@@ -118,7 +111,7 @@ public class SubscriptionService {
         client.setSubscriptionExpiredAt(LocalDateTime.now());
         clientRepository.save(client);
 
-        emailService.sendSubscriptionRevokedNotification(email);
+        // ✅ УДАЛЕНО: отправка email о деактивации
         log.info("Подписка отозвана для: {}", email);
     }
 
@@ -141,7 +134,7 @@ public class SubscriptionService {
     }
 
     private Subscription createNewSubscription(String email) {
-        LocalDateTime expirationDate = LocalDateTime.now().plusMinutes(1); // короткая PENDING
+        LocalDateTime expirationDate = LocalDateTime.now().plusMinutes(1);
         return Subscription.builder()
             .email(email)
             .expirationDate(expirationDate)
