@@ -51,6 +51,7 @@ public class EmailService {
             log.info("Письмо о запросе подписки отправлено владельцам для клиента: {} с файлом: {}", clientEmail, fileName);
         } catch (Exception e) {
             log.error("Ошибка при отправке запроса подписки для клиента: {}", clientEmail, e);
+            throw new RuntimeException("Не удалось отправить запрос подписки: " + e.getMessage());
         }
     }
 }
