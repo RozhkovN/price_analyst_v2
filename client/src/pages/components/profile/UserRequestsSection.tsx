@@ -15,12 +15,14 @@ interface UserRequestsSectionProps {
   user: User;
   onMessage: (message: string) => void;
   onMessageSuccess: (success: boolean) => void;
+  disabled?: boolean;
 }
 
 export const UserRequestsSection = ({
   user,
   onMessage,
   onMessageSuccess,
+  disabled = false,
 }: UserRequestsSectionProps) => {
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -29,6 +31,7 @@ export const UserRequestsSection = ({
 
   // Функция для загрузки запросов пользователя
   const fetchUserRequests = async () => {
+    if (disabled) return;
     setRequestsLoading(true);
     try {
       const response = await axios.get<UserRequest[]>(

@@ -3,12 +3,13 @@ import { m } from "framer-motion";
 import { useAtom } from "jotai";
 import { isAdminAtom, userAtom } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
+
 import { StatusMessage } from "./components/ui/StatusMessage";
 import { AdminHeader } from "./components/admin/AdminHeader";
 import { SuppliersUploadSection } from "./components/admin/SuppliersUploadSection";
 import { UploadStats } from "./components/admin/UploadStats";
 import { UserRequestsSection } from "./components/admin/UserRequestsSection";
-
+import { ExtendSubscriptionSection } from "./components/subscription/ExtendSubscriptionSection";
 
 interface UploadResponse {
   success: boolean;
@@ -26,18 +27,17 @@ function Admin() {
   const navigate = useNavigate();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<string>("");
+  const [uploadMessage, setUploadMessage] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(
     null,
   );
 
-  // Автоматическая аутентификация если isAdmin = true
   useEffect(() => {
     if (isAdmin) {
       setIsAuthenticated(true);
     } else {
-      navigate("/"); // Редирект на главную если не админ
+      navigate("/");
     }
   }, [isAdmin, navigate]);
 
@@ -55,12 +55,11 @@ function Admin() {
         <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
+          transition={{ duration: 0.6 }}
           className="mx-auto max-w-6xl"
         >
           <AdminHeader onNavigateHome={() => navigate("/")} />
 
-          {/* Секция загрузки данных поставщиков */}
           <SuppliersUploadSection
             user={user}
             onUploadResponse={setUploadResponse}
@@ -68,16 +67,21 @@ function Admin() {
             onUploadSuccess={setUploadSuccess}
           />
 
-          {/* Сообщение о статусе */}
           {uploadMessage && (
             <StatusMessage message={uploadMessage} success={uploadSuccess} />
           )}
 
-          {/* Статистика загрузки */}
           {uploadResponse && <UploadStats uploadResponse={uploadResponse} />}
 
-          {/* Секция запросов пользователей */}
-          <UserRequestsSection user={user} />
+          {/* Продление подписки */}
+          <ExtendSubscriptionSection />
+
+          <UserRequestsSection
+            user={user}
+            onMessage={setUploadMessage}
+            onMessageSuccess={setUploadSuccess}
+            disabled={false}
+          />
         </m.div>
       </div>
     </div>

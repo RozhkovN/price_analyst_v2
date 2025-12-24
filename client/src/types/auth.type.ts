@@ -1,6 +1,7 @@
 export interface User {
   token?: string;
   role?: "USER" | "ADMIN";
+  email?: string;
 }
 
 export interface LoginFormData {
@@ -11,6 +12,7 @@ export interface LoginFormData {
 export interface RegisterFormData {
   inn: string;
   fullName: string;
+  email: string;
   phone: string;
   password: string;
   confirmPassword: string;

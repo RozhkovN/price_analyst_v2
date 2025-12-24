@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type Dispatch } from "react";
 import { m } from "framer-motion";
 import axios from "axios";
 import Button from "../ui/Button";
 import { CompanyRequests } from "./CompanyRequests";
+import type { SetStateAction } from "jotai";
 
 interface User {
   token?: string;
@@ -61,9 +62,15 @@ const groupRequestsByCompany = (requests: UserRequest[]): CompanyGroup[] => {
 
 interface UserRequestsSectionProps {
   user: User | null;
+  onMessage: Dispatch<SetStateAction<string>>;
+  onMessageSuccess: Dispatch<SetStateAction<boolean | null>>;
+  disabled: boolean;
 }
 
-export const UserRequestsSection = ({ user }: UserRequestsSectionProps) => {
+export const UserRequestsSection = ({
+  user,
+  disabled,
+}: UserRequestsSectionProps) => {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [userRequests, setUserRequests] = useState<UserRequest[]>([]);
@@ -128,7 +135,7 @@ export const UserRequestsSection = ({ user }: UserRequestsSectionProps) => {
           </div>
           <Button
             onClick={fetchUserRequests}
-            disabled={requestsLoading}
+            disabled={requestsLoading || disabled}
             className="flex items-center gap-2"
           >
             {requestsLoading ? (

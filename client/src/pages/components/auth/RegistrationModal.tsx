@@ -5,20 +5,12 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import Button from "../ui/Button";
 import { isAdminAtom, isAuthAtom, userAtom } from "@/store/authStore";
+import type { RegisterFormData } from "@/types/auth.type";
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
-}
-
-interface RegisterFormData {
-  inn: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
 }
 
 interface AuthResponse {
@@ -83,6 +75,7 @@ function RegisterModal({
       setUser({
         token,
         role,
+        // email: data.email,
       });
       setIsAuth(true);
       setIsAdmin(role === "ADMIN");

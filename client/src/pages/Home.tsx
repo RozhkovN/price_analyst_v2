@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import type { PriceAnalysisResult } from "@/types/analysis.type";
 import Navbar from "./components/layout/Navbar";
 import { HeroSection } from "./components/home/HeroSection";
@@ -12,7 +13,9 @@ import { AnalysisResults } from "./components/analysis/AnalysisResults";
 import { Instructions } from "./components/home/Instructions";
 import LoginModal from "./components/auth/LoginModal";
 import RegisterModal from "./components/auth/RegistrationModal";
-// import Footer from "./components/layout/Footer";
+import Footer from "./components/layout/Footer";
+import ContactFloatButton from "./components/ui/ContactFloatButton";
+import { SubscriptionExpiredNotice } from "./components/subscription/SubscriptionExpiredNotice";
 
 function Home() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -40,6 +43,9 @@ function Home() {
     validateAuth,
   } = useFileUpload();
 
+  const { isExpired, isChecking: checkingSubscription } =
+    useSubscriptionStatus();
+
   // Ref для скролла к результатам
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +59,6 @@ function Home() {
     setIsLoginModalOpen(true);
   };
 
-  // Функция для скролла к результатам
   const scrollToResults = () => {
     if (resultsRef.current) {
       resultsRef.current.scrollIntoView({
@@ -63,7 +68,6 @@ function Home() {
     }
   };
 
-  // Автоматический скролл при появлении результатов
   useEffect(() => {
     if (showResults && analysisResults.length > 0) {
       // Небольшая задержка для гарантии рендера компонента
@@ -74,12 +78,12 @@ function Home() {
   }, [showResults, analysisResults]);
 
   const downloadTemplate = async () => {
+    if (isExpired) return;
     setDownloadLoading(true);
     try {
       const response = await axios.get(`${API_URL}/template/download`, {
         responseType: "blob",
       });
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -87,11 +91,9 @@ function Home() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-
       setUploadMessage("Шаблон успешно скачан");
       setUploadSuccess(true);
     } catch (error) {
-      console.error("Ошибка загрузки:", error);
       setUploadMessage("Ошибка при скачивании шаблона");
       setUploadSuccess(false);
     } finally {
@@ -100,22 +102,20 @@ function Home() {
   };
 
   const uploadTable = async () => {
+    if (isExpired) return;
     if (!selectedFile) {
       setUploadMessage("Пожалуйста, выберите файл для загрузки");
       setUploadSuccess(false);
       return;
     }
-
     if (!validateAuth()) {
       setIsRegisterModalOpen(true);
       return;
     }
-
     setUploadLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-
       const response = await axios.post<PriceAnalysisResult[]>(
         `${API_URL}/data/analyze-prices`,
         formData,
@@ -128,58 +128,44 @@ function Home() {
       );
       setUploadMessage("Анализ цен завершен успешно");
       setUploadSuccess(true);
-
       if (response.data) {
         setAnalysisResults(response.data);
         setShowResults(true);
       }
-
       resetFile();
     } catch (error: any) {
-      console.error("Ошибка при загрузке файла:", error);
-
-      if (error.response?.status === 401) {
-        setUploadMessage("Для анализа цен необходимо зарегистрироваться");
-        setUploadSuccess(false);
-        setIsRegisterModalOpen(true);
-      } else {
-        setUploadMessage(
-          error.response?.data?.message || "Ошибка при анализе файла",
-        );
-        setUploadSuccess(false);
-      }
+      setUploadMessage(
+        error.response?.data?.message || "Ошибка при анализе файла",
+      );
+      setUploadSuccess(false);
       setShowResults(false);
     } finally {
       setUploadLoading(false);
     }
   };
 
-  const exportResultsToExcel = async () => {
-    if (analysisResults.length === 0) {
-      setUploadMessage("Нет данных для выгрузки");
-      setUploadSuccess(false);
-      return;
-    }
+  if (checkingSubscription) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-xl">Проверка подписки...</div>
+      </div>
+    );
+  }
 
-    if (!validateAuth()) {
-      setIsRegisterModalOpen(true);
-      return;
-    }
-
+  async function exportResultsToExcel(): Promise<void> {
+    if (isExpired || analysisResults.length === 0) return;
     setExportLoading(true);
     try {
       const response = await axios.post(
-        `${API_URL}/data/export-detailed-analysis`,
-        analysisResults,
+        `${API_URL}/data/export-results`,
+        { results: analysisResults },
         {
           responseType: "blob",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${user!.token}`,
           },
         },
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -187,131 +173,41 @@ function Home() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-
-      setUploadMessage("Результаты успешно выгружены в Excel");
-      setUploadSuccess(true);
-    } catch (error: any) {
-      console.error("Ошибка выгрузки:", error);
-
-      if (error.response?.status === 401) {
-        setUploadMessage(
-          "Для выгрузки результатов необходимо зарегистрироваться",
-        );
-        setUploadSuccess(false);
-        setIsRegisterModalOpen(true);
-      } else {
-        setUploadMessage("Ошибка при выгрузке результатов");
-        setUploadSuccess(false);
-      }
+    } catch (error) {
+      setUploadMessage("Ошибка при экспорте результатов");
+      setUploadSuccess(false);
     } finally {
       setExportLoading(false);
     }
-  };
-
-  // В функции Home добавьте новую функцию для выгрузки поставщика
-  const exportSupplierToExcel = async (supplierName: string) => {
-    if (analysisResults.length === 0) {
-      setUploadMessage("Нет данных для выгрузки");
-      setUploadSuccess(false);
-      return;
-    }
-
-    if (!validateAuth()) {
-      setIsRegisterModalOpen(true);
-      return;
-    }
-
+  }
+  async function exportSupplierToExcel(supplierName: string): Promise<void> {
+    if (isExpired || analysisResults.length === 0) return;
+    setExportLoading(true);
     try {
-      // Извлекаем чистое имя поставщика из форматированного названия
-      const extractSupplierName = (fullMessage: string) => {
-        // Берем часть до первой запятой - это должно быть имя поставщика
-        const match = fullMessage.match(/^([^,]+)/);
-        return match ? match[1].trim() : fullMessage;
-      };
-
-      // Получаем чистое имя поставщика для поиска
-      const cleanSupplierName = extractSupplierName(supplierName);
-
-      // Фильтруем результаты, где supplierName содержит чистое имя поставщика
-      const supplierProducts = analysisResults
-        .filter((result) => {
-          if (!result.supplierName) return false;
-          const resultCleanName = extractSupplierName(result.supplierName);
-          return resultCleanName === cleanSupplierName;
-        })
-        .map((result) => {
-          // Функция для преобразования цены в число с точкой
-          const parsePrice = (price: any): number => {
-            if (price === null || price === undefined) return 0;
-            if (typeof price === "number") return price;
-            if (typeof price === "string") {
-              const cleanedPrice = price.replace(/,/g, ".").replace(/\s/g, "");
-              return parseFloat(cleanedPrice) || 0;
-            }
-            return 0;
-          };
-
-          return {
-            barcode: result.barcode || "",
-            productName: result.productName || "",
-            quantity: result.quantity || 0,
-            unitPrice: parsePrice(result.unitPrice),
-            totalPrice: parsePrice(result.totalPrice),
-          };
-        });
-
-      if (supplierProducts.length === 0) {
-        setUploadMessage(`Нет данных для поставщика "${cleanSupplierName}"`);
-        setUploadSuccess(false);
-        return;
-      }
-
       const response = await axios.post(
-        `${API_URL}/data/export-invoice`,
-        supplierProducts,
+        `${API_URL}/data/export-supplier-results`,
+        { supplierName, results: analysisResults },
         {
           responseType: "blob",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${user!.token}`,
           },
         },
       );
-
-      const safeSupplierName = cleanSupplierName
-        .replace(/[^a-zA-Z0-9а-яА-ЯёЁ\s_-]/g, "")
-        .trim();
-      const fileName = `товары_${safeSupplierName}.xlsx`;
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", fileName);
+      link.setAttribute("download", `supplier_${supplierName}_results.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-
-      setUploadMessage(
-        `Товары поставщика "${cleanSupplierName}" выгружены в Excel`,
-      );
-      setUploadSuccess(true);
-    } catch (error: any) {
-      console.error("Ошибка выгрузки поставщика:", error);
-
-      if (error.response?.status === 401) {
-        setUploadMessage("Для выгрузки необходимо зарегистрироваться");
-        setUploadSuccess(false);
-        setIsRegisterModalOpen(true);
-      } else if (error.response?.status === 400) {
-        setUploadMessage("Ошибка в формате данных для выгрузки");
-        setUploadSuccess(false);
-      } else {
-        setUploadMessage("Ошибка при выгрузке данных поставщика");
-        setUploadSuccess(false);
-      }
+    } catch (error) {
+      setUploadMessage("Ошибка при экспорте результатов поставщика");
+      setUploadSuccess(false);
+    } finally {
+      setExportLoading(false);
     }
-  };
-
+  }
   return (
     <div className="from-blue-25 min-h-screen w-screen bg-gradient-to-br to-white">
       <Navbar
@@ -329,6 +225,8 @@ function Home() {
           >
             <HeroSection />
 
+            {isExpired && <SubscriptionExpiredNotice />}
+
             <ActionCards
               onDownloadTemplate={downloadTemplate}
               onFileSelect={handleFileSelect}
@@ -336,13 +234,13 @@ function Home() {
               selectedFile={selectedFile}
               downloadLoading={downloadLoading}
               uploadLoading={uploadLoading}
+              disabled={isExpired}
             />
 
             {uploadMessage && (
               <StatusMessage message={uploadMessage} success={uploadSuccess} />
             )}
 
-            {/* Ref для скролла к результатам */}
             <div ref={resultsRef}>
               {showResults && analysisResults.length > 0 && (
                 <AnalysisResults
@@ -350,6 +248,7 @@ function Home() {
                   onExport={exportResultsToExcel}
                   onExportSupplier={exportSupplierToExcel}
                   exportLoading={exportLoading}
+                  disabled={isExpired}
                 />
               )}
             </div>
@@ -369,8 +268,10 @@ function Home() {
           onClose={() => setIsRegisterModalOpen(false)}
           onSwitchToLogin={switchToLogin}
         />
+
+        <ContactFloatButton />
       </div>
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 }

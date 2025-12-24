@@ -11,6 +11,7 @@ interface ActionCardsProps {
   selectedFile: File | null;
   downloadLoading: boolean;
   uploadLoading: boolean;
+  disabled?: boolean;
 }
 
 export const ActionCards = ({
@@ -20,6 +21,7 @@ export const ActionCards = ({
   selectedFile,
   downloadLoading,
   uploadLoading,
+  disabled = false,
 }: ActionCardsProps) => {
   return (
     <div className="mb-16 grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -42,7 +44,7 @@ export const ActionCards = ({
         </p>
         <Button
           onClick={onDownloadTemplate}
-          disabled={downloadLoading}
+          disabled={downloadLoading || disabled}
           className="w-full"
         >
           {downloadLoading ? (
@@ -128,7 +130,7 @@ export const ActionCards = ({
 
         <Button
           onClick={onAnalyze}
-          disabled={uploadLoading || !selectedFile}
+          disabled={uploadLoading || !selectedFile || disabled}
           className="w-full"
         >
           {uploadLoading ? (

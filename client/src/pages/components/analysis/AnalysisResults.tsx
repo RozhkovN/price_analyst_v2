@@ -13,6 +13,7 @@ interface AnalysisResultsProps {
   onExport: () => void;
   onExportSupplier: (supplierName: string) => Promise<void>;
   exportLoading: boolean;
+  disabled?: boolean;
 }
 
 export const AnalysisResults = ({
@@ -20,6 +21,7 @@ export const AnalysisResults = ({
   onExport,
   onExportSupplier,
   exportLoading,
+  disabled = false,
 }: AnalysisResultsProps) => {
   const {
     supplierGroups,
@@ -55,7 +57,7 @@ export const AnalysisResults = ({
         </h3>
         <Button
           onClick={onExport}
-          disabled={exportLoading}
+          disabled={exportLoading || disabled}
           className="flex items-center gap-2"
         >
           {exportLoading ? (
