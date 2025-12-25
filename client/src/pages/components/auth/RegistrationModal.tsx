@@ -255,10 +255,6 @@ function RegisterModal({
                   type="address"
                   {...register("address", {
                     required: "Адрес обязателен для заполнения",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
-                      message: "Некорректный адрес",
-                    },
                   })}
                   placeholder="Введите юридический адрес"
                   className={`bg-blue-25 w-full rounded-lg border px-4 py-3 text-blue-900 placeholder-blue-400 focus:ring-2 focus:outline-none ${
@@ -267,11 +263,6 @@ function RegisterModal({
                       : "border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
                   }`}
                 />
-                {errors.address && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.address.message}
-                  </p>
-                )}
               </div>
 
               {/* Поле телефона */}
