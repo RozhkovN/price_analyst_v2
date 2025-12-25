@@ -51,8 +51,6 @@ services:
       SPRING_MVC_CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS}
 
       # Swagger
-      SPRINGDOC_API_DOCS_PATH: /api-docs
-      SPRINGDOC_SWAGGER_UI_PATH: /swagger-ui.html
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED}
 
       # JWT
