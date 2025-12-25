@@ -5,17 +5,12 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import Button from "../ui/Button";
 import { isAdminAtom, isAuthAtom, userAtom } from "@/store/authStore";
-import type { RegisterFormData } from "@/types/auth.type";
+import type { AuthResponse, RegisterFormData } from "@/types/auth.type";
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
-}
-
-interface AuthResponse {
-  token: string;
-  role: "USER" | "ADMIN";
 }
 
 function RegisterModal({
@@ -63,6 +58,7 @@ function RegisterModal({
         {
           inn: data.inn,
           fullName: data.fullName,
+          address: data.address,
           email: data.email,
           phone: data.phone,
           password: data.password,
@@ -242,6 +238,38 @@ function RegisterModal({
                 {errors.inn && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.inn.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Поле адрес */}
+              <div>
+                <label
+                  htmlFor="address"
+                  className="mb-2 block text-sm font-medium text-blue-700"
+                >
+                  Юридический адрес *
+                </label>
+                <input
+                  id="address"
+                  type="address"
+                  {...register("address", {
+                    required: "Адрес обязателен для заполнения",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+                      message: "Некорректный адрес",
+                    },
+                  })}
+                  placeholder="Введите юридический адрес"
+                  className={`bg-blue-25 w-full rounded-lg border px-4 py-3 text-blue-900 placeholder-blue-400 focus:ring-2 focus:outline-none ${
+                    errors.address
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                      : "border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
+                  }`}
+                />
+                {errors.address && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.address.message}
                   </p>
                 )}
               </div>

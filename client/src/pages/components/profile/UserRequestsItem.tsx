@@ -8,14 +8,7 @@ import { LoadingSpinner } from "../ui/LoadingSpinner";
 import { RequestStats } from "./RequestStats";
 import { RequestDetails } from "./RequestDetails";
 import type { User } from "@/types/auth.type";
-import type { PriceAnalysisResult } from "@/types/analysis.type";
-
-interface UserRequest {
-  id: number;
-  timestamp: string;
-  requestDetails: string;
-  responseDetails: PriceAnalysisResult[];
-}
+import type { UserRequest } from "@/types/analysis.type";
 
 interface UserRequestItemProps {
   request: UserRequest;

@@ -225,7 +225,7 @@ function Home() {
           >
             <HeroSection />
 
-            {isExpired && <SubscriptionExpiredNotice />}
+            <SubscriptionExpiredNotice />
 
             <ActionCards
               onDownloadTemplate={downloadTemplate}

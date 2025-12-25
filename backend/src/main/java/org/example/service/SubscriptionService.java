@@ -19,7 +19,6 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final ClientRepository clientRepository;
-    private final EmailService emailService;
 
     @Value("${subscription.trial.minutes}")
     private Integer trialMinutes;
@@ -88,11 +87,6 @@ public class SubscriptionService {
 
         // ✅ УДАЛЕНО: отправка email об активации
         log.info("Подписка выдана для: {} до {}", email, newExpirationDate);
-    }
-
-    public void requestSubscription(String email, String fileName, MultipartFile file) {
-        emailService.sendSubscriptionRequestToOwners(email, fileName, file);
-        log.info("Запрос подписки отправлен владельцам для: {}", email);
     }
 
     @Transactional

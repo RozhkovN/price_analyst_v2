@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
     "axios": "^1.12.2",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.23.14",
     "jotai": "^2.15.0",
     "react": "^19.1.1",

@@ -1,14 +1,5 @@
+import type { UploadResponse } from "@/types/admin.type";
 import { m } from "framer-motion";
-
-interface UploadResponse {
-  success: boolean;
-  message: string;
-  newRecords: number;
-  updatedRecords: number;
-  unchangedRecords: number;
-  processedRecords: number;
-  failedRecords: number;
-}
 
 interface UploadStatsProps {
   uploadResponse: UploadResponse;

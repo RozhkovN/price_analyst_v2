@@ -10,13 +10,9 @@ import {
 const ContactFloatButton = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // const phoneNumber = "+7 (999) 123-45-67";
-  // const email = "Info@supplyX.ru";
+  const phoneNumber = "8(909) 980-01-88";
+  const email = "sale@supplyx.ru";
   const telegram = "t.me/Supprice_bot";
-
-  // const handleEmailClick = () => {
-  //   window.location.href = `mailto:${email}`;
-  // };
 
   const handleTelegramClick = () => {
     window.open(`https://${telegram}`, "_blank");
@@ -34,48 +30,46 @@ const ContactFloatButton = () => {
             className="absolute right-0 bottom-16 mb-4 flex flex-col gap-3"
           >
             {/* Telegram */}
-            <motion.button
+            <motion.div
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
               whileHover={{ scale: 1.05 }}
+              className="group flex cursor-pointer items-center gap-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-white shadow-lg select-none hover:shadow-xl"
               onClick={handleTelegramClick}
-              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-white shadow-lg hover:shadow-xl"
             >
               <FaTelegramPlane size={23} />
-              <span className="text-md font-medium whitespace-nowrap">
+              <span className="text-md font-medium whitespace-nowrap select-text">
                 Telegram
               </span>
-            </motion.button>
+            </motion.div>
 
             {/* Email */}
-            <motion.button
+            <motion.div
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.05 }}
               whileHover={{ scale: 1.05 }}
-              // onClick={handleEmailClick}
-              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 px-5 py-3 text-white shadow-lg hover:shadow-xl"
+              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 px-5 py-3 text-white shadow-lg select-none hover:shadow-xl"
             >
               <FaEnvelope size={20} />
-              <span className="text-md font-medium whitespace-nowrap">
-                Email
+              <span className="text-md font-medium whitespace-nowrap select-text">
+                {email}
               </span>
-            </motion.button>
+            </motion.div>
 
             {/* Phone */}
-            <motion.button
+            <motion.div
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               whileHover={{ scale: 1.05 }}
-              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-5 py-3 text-white shadow-lg hover:shadow-xl"
+              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-5 py-3 text-white shadow-lg select-none hover:shadow-xl"
             >
               <FaPhoneAlt size={20} />
-              <span className="text-md font-medium whitespace-nowrap">
-                {/* {phoneNumber} */}
-                Номер
+              <span className="text-md font-medium whitespace-nowrap select-text">
+                {phoneNumber}
               </span>
-            </motion.button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

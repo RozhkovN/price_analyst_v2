@@ -1,13 +1,5 @@
-import type { UserRequest } from "@/types/analysis.type";
+import type { SupplierInfo, UserRequest } from "@/types/analysis.type";
 import { m } from "framer-motion";
-
-interface SupplierInfo {
-  name: string;
-  inn: string;
-  address: string;
-  phone: string;
-  email: string;
-}
 
 // Функция для парсинга информации о поставщике из строки
 const parseSupplierInfo = (

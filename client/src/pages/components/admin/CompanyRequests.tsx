@@ -3,25 +3,7 @@ import { m, AnimatePresence } from "framer-motion";
 import ChevronDownIcon from "../ui/icons/ChevronDownIcon";
 import type { User } from "@/types/auth.type";
 import { UserRequestItem } from "./UserRequestItem";
-
-interface FileContent {
-  [key: string]: any;
-}
-
-interface UserRequest {
-  fullName: string;
-  inn: string;
-  phone: string;
-  fileContent?: FileContent[];
-  timestamp: string;
-}
-
-interface CompanyGroup {
-  fullName: string;
-  inn: string;
-  phone: string;
-  requests: UserRequest[];
-}
+import type { CompanyGroup } from "@/types/admin.type";
 
 interface CompanyRequestsProps {
   companyGroups: CompanyGroup[];

@@ -1,11 +1,4 @@
-import type { PriceAnalysisResult } from "@/types/analysis.type";
-
-interface UserRequest {
-  id: number;
-  timestamp: string;
-  requestDetails: string;
-  responseDetails: PriceAnalysisResult[];
-}
+import type { UserRequest } from "@/types/analysis.type";
 
 interface RequestStatsProps {
   request: UserRequest;

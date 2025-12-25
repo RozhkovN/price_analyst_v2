@@ -6,10 +6,7 @@ import { LoadingSpinner } from "../ui/LoadingSpinner";
 import { UserRequestItem } from "./UserRequestsItem";
 import { EmptyState } from "../ui/EmptyState";
 import type { UserRequest } from "@/types/analysis.type";
-
-interface User {
-  token?: string;
-}
+import type { User } from "@/types/auth.type";
 
 interface UserRequestsSectionProps {
   user: User;

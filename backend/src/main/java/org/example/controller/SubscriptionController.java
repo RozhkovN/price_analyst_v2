@@ -120,47 +120,6 @@ public class SubscriptionController {
     }
 
     /**
-     * Запросить подписку (отправить документ владельцам)
-     * POST /api/subscription/request-renewal
-     */
-    @PostMapping(value = "/request-renewal", consumes = "multipart/form-data")
-    @Operation(summary = "Запрос подписки", description = "Отправить запрос на продление подписки с документом владельцам")
-    public ResponseEntity<Map<String, String>> requestSubscription(
-            @Parameter(description = "Email пользователя", required = true)
-            @RequestParam("email") String email,
-            @Parameter(description = "Word документ с запросом", required = true)
-            @RequestParam("file") MultipartFile file) {
-        try {
-            if (email == null || email.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email не может быть пустым"));
-            }
-
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Файл не должен быть пустым"));
-            }
-
-            // Проверяем расширение файла (Word документы)
-            String filename = file.getOriginalFilename();
-            if (!filename.endsWith(".docx") && !filename.endsWith(".doc") && !filename.endsWith(".pdf")) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Поддерживаются только Word документы (.docx, .doc) или PDF"));
-            }
-
-            subscriptionService.requestSubscription(email, file.getOriginalFilename(), file);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Запрос подписки отправлен владельцам");
-            response.put("email", email);
-            response.put("fileName", file.getOriginalFilename());
-
-            log.info("Запрос подписки отправлен для: {} с файлом: {}", email, file.getOriginalFilename());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Ошибка при отправке запроса подписки: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Ошибка обработки запроса: " + e.getMessage()));
-        }
-    }
-
-    /**
      * Удалить подписку и клиента (только для ADMIN)
      * DELETE /api/subscription/revoke
      */

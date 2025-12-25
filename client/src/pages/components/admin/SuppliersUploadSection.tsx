@@ -1,24 +1,11 @@
 import { useState } from "react";
 import { m } from "framer-motion";
 import axios from "axios";
-
 import Button from "../ui/Button";
 import FileIcon from "../ui/icons/FileIcon";
 import DownloadIcon from "../ui/icons/DownloadIcon";
-
-interface User {
-  token?: string;
-}
-
-interface UploadResponse {
-  success: boolean;
-  message: string;
-  newRecords: number;
-  updatedRecords: number;
-  unchangedRecords: number;
-  processedRecords: number;
-  failedRecords: number;
-}
+import type { User } from "@/types/auth.type";
+import type { UploadResponse } from "@/types/admin.type";
 
 interface SuppliersUploadSectionProps {
   user: User | null;

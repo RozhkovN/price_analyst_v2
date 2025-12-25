@@ -8,18 +8,9 @@ import { StatusMessage } from "./components/ui/StatusMessage";
 import { AdminHeader } from "./components/admin/AdminHeader";
 import { SuppliersUploadSection } from "./components/admin/SuppliersUploadSection";
 import { UploadStats } from "./components/admin/UploadStats";
-import { UserRequestsSection } from "./components/admin/UserRequestsSection";
+import { UserRequestsSection } from "./components/admin/UsersRequestsSection";
 import { ExtendSubscriptionSection } from "./components/subscription/ExtendSubscriptionSection";
-
-interface UploadResponse {
-  success: boolean;
-  message: string;
-  newRecords: number;
-  updatedRecords: number;
-  unchangedRecords: number;
-  processedRecords: number;
-  failedRecords: number;
-}
+import type { UploadResponse } from "@/types/admin.type";
 
 function Admin() {
   const [user] = useAtom(userAtom);

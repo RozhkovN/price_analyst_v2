@@ -4,32 +4,13 @@ import axios from "axios";
 import Button from "../ui/Button";
 import { CompanyRequests } from "./CompanyRequests";
 import type { SetStateAction } from "jotai";
-
-interface User {
-  token?: string;
-}
-
-interface FileContent {
-  [key: string]: any;
-}
-
-interface UserRequest {
-  fullName: string;
-  inn: string;
-  phone: string;
-  fileContent?: FileContent[];
-  timestamp: string;
-}
-
-interface CompanyGroup {
-  fullName: string;
-  inn: string;
-  phone: string;
-  requests: UserRequest[];
-}
+import type { User } from "@/types/auth.type";
+import type { AdminUserRequest, CompanyGroup } from "@/types/admin.type";
 
 // Функция для группировки запросов по компаниям
-const groupRequestsByCompany = (requests: UserRequest[]): CompanyGroup[] => {
+const groupRequestsByCompany = (
+  requests: AdminUserRequest[],
+): CompanyGroup[] => {
   const groups: { [key: string]: CompanyGroup } = {};
 
   requests.forEach((request) => {
@@ -73,7 +54,7 @@ export const UserRequestsSection = ({
 }: UserRequestsSectionProps) => {
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const [userRequests, setUserRequests] = useState<UserRequest[]>([]);
+  const [userRequests, setUserRequests] = useState<AdminUserRequest[]>([]);
   const [companyGroups, setCompanyGroups] = useState<CompanyGroup[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
@@ -81,7 +62,7 @@ export const UserRequestsSection = ({
   const fetchUserRequests = async () => {
     setRequestsLoading(true);
     try {
-      const response = await axios.get<UserRequest[]>(
+      const response = await axios.get<AdminUserRequest[]>(
         `${API_URL}/admin/file-upload-history`,
         {
           headers: user?.token

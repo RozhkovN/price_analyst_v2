@@ -6,25 +6,11 @@ import Button from "../ui/Button";
 import ChevronDownIcon from "../ui/icons/ChevronDownIcon";
 import ExportIcon from "../ui/icons/ExportIcon";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
-
-interface User {
-  token?: string;
-}
-
-interface FileContent {
-  [key: string]: any;
-}
-
-interface UserRequest {
-  fullName: string;
-  inn: string;
-  phone: string;
-  fileContent?: FileContent[];
-  timestamp: string;
-}
+import type { User } from "@/types/auth.type";
+import type { AdminUserRequest, FileContent } from "@/types/admin.type";
 
 interface UserRequestItemProps {
-  request: UserRequest;
+  request: AdminUserRequest;
   requestIndex: number;
   user: User | null;
 }
@@ -42,7 +28,7 @@ export const UserRequestItem = ({
   );
 
   // Функция для скачивания Excel файла запроса
-  const downloadUserRequestExcel = async (request: UserRequest) => {
+  const downloadUserRequestExcel = async (request: AdminUserRequest) => {
     setDownloadingRequest(request.inn + request.timestamp);
     try {
       // Преобразуем fileContent в нужный формат для экспорта
