@@ -51,6 +51,7 @@ public class AuthService {
         String fullName = request.getFullName().replaceAll("[\\r\\n\\t]", "");
         String phone = normalizePhone(request.getPhone());
         String email = request.getEmail().replaceAll("[\\r\\n\\t]", "").toLowerCase();
+        String address = request.getAddress().replaceAll("[\\r\n\\t]", "").trim();
         String password = request.getPassword().replaceAll("[\\r\\n\\t]", "");
 
         if (phone == null) {
@@ -76,6 +77,7 @@ public class AuthService {
                 .fullName(fullName)
                 .phone(phone)
                 .email(email)
+                .address(address)
                 .password(passwordEncoder.encode(password))
                 .role(role)
                 .subscriptionExpiredAt(subscription.getExpirationDate())

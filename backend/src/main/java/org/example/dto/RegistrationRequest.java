@@ -29,4 +29,8 @@ public class RegistrationRequest {
     @NotBlank(message = "Пароль не может быть пустым")
     @Size(min = 6, message = "Пароль должен быть не менее 6 символов")
     private String password;
+
+    @NotBlank(message = "Адрес не может быть пустым")
+    @Size(max = 255, message = "Адрес не должен превышать 255 символов")
+    private String address;
 }
