@@ -170,7 +170,15 @@ public class DataController {
 
     @PostMapping("/export-results")
     @Operation(summary = "Выгрузка результата анализа в Excel", description = "Скачать Excel файл с результатами анализа цен")
-    public void exportAnalysis(@RequestBody List<PriceAnalysisResult> results, HttpServletResponse response) throws IOException {
+    public void exportAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
+        @SuppressWarnings("unchecked")
+        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
+        
+        if (results == null || results.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=price_analysis_export.xlsx");
 
@@ -209,7 +217,14 @@ public class DataController {
 
     @PostMapping("/export-supplier-results")
     @Operation(summary = "Выгрузка детального анализа цен в Excel", description = "Скачать Excel файл с детальным анализом всех цен по каждому товару")
-    public void exportDetailedAnalysis(@RequestBody List<PriceAnalysisResult> results, HttpServletResponse response) throws IOException {
+    public void exportDetailedAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
+        @SuppressWarnings("unchecked")
+        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
+        
+        if (results == null || results.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=detailed_price_analysis_export.xlsx");
 
