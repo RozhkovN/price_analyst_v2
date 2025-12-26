@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,10 +34,9 @@ public class ExcelProcessingService {
         int failed = 0;
         int skipped = 0;
 
-        Map<String, Boolean> fileDuplicateCheckCache = new HashMap<>(); // Для пропуска дубликатов в файле по supplier + barcode
-
-        // Кэш поставщиков
+        Set<String> fileDuplicateCheckCache = new HashSet<>();
         Map<String, Supplier> supplierCache = new HashMap<>();
+        Map<String, Product> productCache = new HashMap<>();
 
         try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -53,10 +53,29 @@ public class ExcelProcessingService {
 
             log.info("Detected columns - SupplierName: {}, Barcode: {}, ProductName: {}, Price: {}", supplierNameCol, barcodeCol, productNameCol, priceCol);
 
-            List<Product> batchProducts = new ArrayList<>();
-            int batchSize = 1000;
+            // Подготовка поставщиков перед обработкой
+            int totalRows = sheet.getLastRowNum();
+            Set<String> suppliersInFile = new HashSet<>();
+            for (int i = 1; i <= totalRows; i++) {
+                Row row = sheet.getRow(i);
+                if (row != null) {
+                    String supplierName = getCellStringValue(row.getCell(supplierNameCol));
+                    if (supplierName != null && !supplierName.trim().isEmpty()) {
+                        suppliersInFile.add(supplierName.trim());
+                    }
+                }
+            }
+            
+            // Массовая загрузка поставщиков
+            ensureSuppliersExist(suppliersInFile);
+            
+            // Загрузка существующих товаров в кэш (оптимизировано)
+            loadExistingProductsToCache(suppliersInFile, productCache);
 
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            List<Product> batchProducts = new ArrayList<>();
+            int batchSize = 5000; // Увеличена размер батча
+
+            for (int i = 1; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
@@ -74,39 +93,32 @@ public class ExcelProcessingService {
                     barcode = barcode.trim();
                     if (productName != null) productName = productName.trim();
 
-                    // Проверка дубликата в файле по supplier + barcode
+                    // Проверка дубликата в файле
                     String duplicateKey = supplierName + "|" + barcode;
-                    if (fileDuplicateCheckCache.containsKey(duplicateKey)) {
+                    if (fileDuplicateCheckCache.contains(duplicateKey)) {
                         skipped++;
-                        log.debug("Пропущен дубликат в файле: поставщик {}, штрихкод {}", supplierName, barcode);
                         continue;
                     }
-                    fileDuplicateCheckCache.put(duplicateKey, true);
+                    fileDuplicateCheckCache.add(duplicateKey);
 
-                    // Кэш поставщиков
-                    Supplier supplier = supplierCache.computeIfAbsent(supplierName, name ->
-                            supplierRepository.findById(name).orElseGet(() -> {
-                                Supplier newSupplier = Supplier.builder().supplierName(name).build();
-                                return supplierRepository.save(newSupplier);
-                            }));
+                    Supplier supplier = supplierCache.computeIfAbsent(supplierName, 
+                        name -> supplierRepository.findById(name).orElse(null));
 
-                    // Проверка существования в БД
-                    Optional<Product> existingProduct = productRepository.findBySupplier_SupplierNameAndBarcode(supplierName, barcode);
+                    // Проверка существования в кэше
+                    String cacheKey = supplierName + "|" + barcode;
+                    Product existingProduct = productCache.get(cacheKey);
 
-                    if (existingProduct.isPresent()) {
-                        Product existing = existingProduct.get();
-                        boolean changed = !Objects.equals(existing.getProductName(), productName) ||
-                                !Objects.equals(existing.getPriceWithVat(), price);
+                    if (existingProduct != null) {
+                        boolean changed = !Objects.equals(existingProduct.getProductName(), productName) ||
+                                !Objects.equals(existingProduct.getPriceWithVat(), price);
 
                         if (changed) {
-                            existing.setProductName(productName);
-                            existing.setPriceWithVat(price);
-                            batchProducts.add(existing);
+                            existingProduct.setProductName(productName);
+                            existingProduct.setPriceWithVat(price);
+                            batchProducts.add(existingProduct);
                             updatedRecords++;
-                            log.debug("Обновлён продукт: поставщик {}, штрихкод {}", supplierName, barcode);
                         } else {
                             unchangedRecords++;
-                            log.debug("Без изменений: поставщик {}, штрихкод {}", supplierName, barcode);
                         }
                     } else {
                         Product newProduct = Product.builder()
@@ -117,7 +129,6 @@ public class ExcelProcessingService {
                                 .build();
                         batchProducts.add(newProduct);
                         newRecords++;
-                        log.debug("Добавлен новый продукт: поставщик {}, штрихкод {}", supplierName, barcode);
                     }
 
                     if (batchProducts.size() >= batchSize) {
@@ -126,7 +137,7 @@ public class ExcelProcessingService {
                     }
                 } catch (Exception e) {
                     failed++;
-                    log.warn("Ошибка обработки строки {}: {}", i + 1, e.getMessage(), e);
+                    log.warn("Ошибка обработки строки {}: {}", i + 1, e.getMessage());
                 }
             }
 
@@ -134,8 +145,9 @@ public class ExcelProcessingService {
                 productRepository.saveAll(batchProducts);
             }
 
+            long processingTime = System.currentTimeMillis() - startTime;
             String message = String.format("Добавлено: %d, обновлено: %d, без изменений: %d, пропущено дубликатов: %d, ошибок: %d. Время: %d мс",
-                    newRecords, updatedRecords, unchangedRecords, skipped, failed, (System.currentTimeMillis() - startTime));
+                    newRecords, updatedRecords, unchangedRecords, skipped, failed, processingTime);
 
             response.setSuccess(true);
             response.setMessage(message);
@@ -145,10 +157,195 @@ public class ExcelProcessingService {
             response.setProcessedRecords(newRecords + updatedRecords);
             response.setFailedRecords(failed);
 
-            log.info("Обработка завершена: {}", message);
+            log.info("Обработка завершена: {} (Обработано {} записей/сек)", message, 
+                Math.round(totalRows / (processingTime / 1000.0)));
 
             return response;
+        }
+    }
 
+    /**
+     * Загрузить все существующие товары в кэш для быстрого поиска
+     */
+    private void loadExistingProductsToCache(Set<String> supplierNames, Map<String, Product> cache) {
+        log.info("Загрузка существующих товаров в кэш для {} поставщиков", supplierNames.size());
+        long cacheLoadStart = System.currentTimeMillis();
+        
+        // Загружаем товары батчами по поставщикам
+        for (String supplierName : supplierNames) {
+            List<Product> products = productRepository.findBySupplierName(supplierName);
+            for (Product product : products) {
+                String key = supplierName + "|" + product.getBarcode();
+                cache.put(key, product);
+            }
+        }
+        
+        log.info("Загрузка кэша завершена за {} мс. Загружено {} товаров", 
+            System.currentTimeMillis() - cacheLoadStart, cache.size());
+    }
+
+    /**
+     * Убедитесь, что все поставщики существуют в БД
+     */
+    private void ensureSuppliersExist(Set<String> supplierNames) {
+        log.info("Проверка существования {} поставщиков", supplierNames.size());
+        
+        // Получить существующих поставщиков
+        List<Supplier> existingSuppliers = supplierRepository.findAllById(supplierNames);
+        Set<String> existingSupplierNames = existingSuppliers.stream()
+            .map(Supplier::getSupplierName)
+            .collect(Collectors.toSet());
+
+        // Создать недостающих поставщиков
+        List<Supplier> newSuppliers = supplierNames.stream()
+            .filter(name -> !existingSupplierNames.contains(name))
+            .map(name -> Supplier.builder().supplierName(name).build())
+            .collect(Collectors.toList());
+
+        if (!newSuppliers.isEmpty()) {
+            log.info("Создание {} новых поставщиков", newSuppliers.size());
+            supplierRepository.saveAll(newSuppliers);
+        }
+    }
+
+    @Transactional
+    public ExcelUploadResponse processSupplierDataFile(MultipartFile file) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        ExcelUploadResponse response = ExcelUploadResponse.builder().build();
+        int newRecords = 0;
+        int updatedRecords = 0;
+        int unchangedRecords = 0;
+        int failed = 0;
+        int skipped = 0;
+
+        Set<String> fileDuplicateCheckCache = new HashSet<>();
+        Map<String, Supplier> supplierCache = new HashMap<>();
+        Map<String, Product> productCache = new HashMap<>();
+
+        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Определяем индексы колонок
+            int supplierNameCol = findColumnIndex(sheet, "Наименование поставщика");
+            int barcodeCol = findColumnIndex(sheet, "Штрих код");
+            int productNameCol = findColumnIndex(sheet, "Наименование");
+            int priceCol = findColumnIndex(sheet, "ПЦ с НДС опт");
+
+            if (supplierNameCol == -1 || barcodeCol == -1 || productNameCol == -1 || priceCol == -1) {
+                throw new IllegalArgumentException("Не найдены все необходимые заголовки в файле. Убедитесь, что файл предназначен для загрузки данных поставщиков, а не для анализа цен.");
+            }
+
+            log.info("Detected columns - SupplierName: {}, Barcode: {}, ProductName: {}, Price: {}", supplierNameCol, barcodeCol, productNameCol, priceCol);
+
+            // Подготовка поставщиков перед обработкой
+            int totalRows = sheet.getLastRowNum();
+            Set<String> suppliersInFile = new HashSet<>();
+            for (int i = 1; i <= totalRows; i++) {
+                Row row = sheet.getRow(i);
+                if (row != null) {
+                    String supplierName = getCellStringValue(row.getCell(supplierNameCol));
+                    if (supplierName != null && !supplierName.trim().isEmpty()) {
+                        suppliersInFile.add(supplierName.trim());
+                    }
+                }
+            }
+            
+            // Массовая загрузка поставщиков
+            ensureSuppliersExist(suppliersInFile);
+            
+            // Загрузка существующих товаров в кэш (оптимизировано)
+            loadExistingProductsToCache(suppliersInFile, productCache);
+
+            List<Product> batchProducts = new ArrayList<>();
+            int batchSize = 5000; // Увеличена размер батча
+
+            for (int i = 1; i <= totalRows; i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                try {
+                    String supplierName = getCellStringValue(row.getCell(supplierNameCol));
+                    String barcode = getCellStringValue(row.getCell(barcodeCol));
+                    String productName = getCellStringValue(row.getCell(productNameCol));
+                    Double price = getCellNumericValue(row.getCell(priceCol));
+
+                    if (supplierName == null || supplierName.trim().isEmpty() || barcode == null || barcode.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Не указан поставщик или штрихкод");
+                    }
+
+                    supplierName = supplierName.trim();
+                    barcode = barcode.trim();
+                    if (productName != null) productName = productName.trim();
+
+                    // Проверка дубликата в файле
+                    String duplicateKey = supplierName + "|" + barcode;
+                    if (fileDuplicateCheckCache.contains(duplicateKey)) {
+                        skipped++;
+                        continue;
+                    }
+                    fileDuplicateCheckCache.add(duplicateKey);
+
+                    Supplier supplier = supplierCache.computeIfAbsent(supplierName, 
+                        name -> supplierRepository.findById(name).orElse(null));
+
+                    // Проверка существования в кэше
+                    String cacheKey = supplierName + "|" + barcode;
+                    Product existingProduct = productCache.get(cacheKey);
+
+                    if (existingProduct != null) {
+                        boolean changed = !Objects.equals(existingProduct.getProductName(), productName) ||
+                                !Objects.equals(existingProduct.getPriceWithVat(), price);
+
+                        if (changed) {
+                            existingProduct.setProductName(productName);
+                            existingProduct.setPriceWithVat(price);
+                            batchProducts.add(existingProduct);
+                            updatedRecords++;
+                        } else {
+                            unchangedRecords++;
+                        }
+                    } else {
+                        Product newProduct = Product.builder()
+                                .supplier(supplier)
+                                .barcode(barcode)
+                                .productName(productName)
+                                .priceWithVat(price)
+                                .build();
+                        batchProducts.add(newProduct);
+                        newRecords++;
+                    }
+
+                    if (batchProducts.size() >= batchSize) {
+                        productRepository.saveAll(batchProducts);
+                        batchProducts.clear();
+                    }
+                } catch (Exception e) {
+                    failed++;
+                    log.warn("Ошибка обработки строки {}: {}", i + 1, e.getMessage());
+                }
+            }
+
+            if (!batchProducts.isEmpty()) {
+                productRepository.saveAll(batchProducts);
+            }
+
+            long processingTime = System.currentTimeMillis() - startTime;
+            String message = String.format("Добавлено: %d, обновлено: %d, без изменений: %d, пропущено дубликатов: %d, ошибок: %d. Время: %d мс",
+                    newRecords, updatedRecords, unchangedRecords, skipped, failed, processingTime);
+
+            response.setSuccess(true);
+            response.setMessage(message);
+            response.setNewRecords(newRecords);
+            response.setUpdatedRecords(updatedRecords);
+            response.setUnchangedRecords(unchangedRecords);
+            response.setProcessedRecords(newRecords + updatedRecords);
+            response.setFailedRecords(failed);
+
+            log.info("Обработка завершена: {} (Обработано {} записей/сек)", message, 
+                Math.round(totalRows / (processingTime / 1000.0)));
+
+            return response;
         }
     }
 

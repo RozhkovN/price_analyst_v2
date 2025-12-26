@@ -24,4 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COUNT(p) FROM Product p")
     long countProducts();
+
+    @Query("SELECT p FROM Product p WHERE p.supplier.supplierName = :supplierName")
+    List<Product> findBySupplierName(@Param("supplierName") String supplierName);
 }
