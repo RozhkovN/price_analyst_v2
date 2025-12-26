@@ -51,32 +51,3 @@ function Navbar({ setIsLoginModalOpen, setIsRegisterModalOpen }: NavbarProps) {
 }
 
 export default Navbar;
-
-  return (
-    <div className="fixed top-4 right-4 z-20">
-      {isAuth ? (
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-blue-700">
-            {isAdmin && (
-              <Button onClick={() => navigate("/admin")}>Админ-панель</Button>
-            )}
-          </div>
-          <Button onClick={() => navigate("/profile")}>Личный кабинет</Button>
-
-          <Button onClick={handleLogout}>Выйти</Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setIsRegisterModalOpen(true)}
-          >
-            Регистрация
-          </Button>
-          <Button onClick={() => setIsLoginModalOpen(true)}>Войти</Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default Navbar;
