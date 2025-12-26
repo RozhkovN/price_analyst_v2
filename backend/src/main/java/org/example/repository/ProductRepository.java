@@ -27,4 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.supplier.supplierName = :supplierName")
     List<Product> findBySupplierName(@Param("supplierName") String supplierName);
+
+    @Query("SELECT p FROM Product p JOIN FETCH p.supplier WHERE p.supplier.supplierName IN :supplierNames")
+    List<Product> findBySupplierNameIn(@Param("supplierNames") java.util.Set<String> supplierNames);
 }

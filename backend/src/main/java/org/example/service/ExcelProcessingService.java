@@ -191,13 +191,11 @@ public class ExcelProcessingService {
         log.info("Загрузка существующих товаров в кэш для {} поставщиков", supplierNames.size());
         long cacheLoadStart = System.currentTimeMillis();
         
-        // Загружаем товары батчами по поставщикам
-        for (String supplierName : supplierNames) {
-            List<Product> products = productRepository.findBySupplierName(supplierName);
-            for (Product product : products) {
-                String key = supplierName + "|" + product.getBarcode();
-                cache.put(key, product);
-            }
+        // Загружаем все товары за один запрос используя IN запрос
+        List<Product> allProducts = productRepository.findBySupplierNameIn(supplierNames);
+        for (Product product : allProducts) {
+            String key = product.getSupplier().getName() + "|" + product.getBarcode();
+            cache.put(key, product);
         }
         
         log.info("Загрузка кэша завершена за {} мс. Загружено {} товаров", 
