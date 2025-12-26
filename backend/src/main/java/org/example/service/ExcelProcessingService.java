@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.persistence.EntityManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ public class ExcelProcessingService {
 
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
+    private final EntityManager entityManager;
 
     @Transactional
     public ExcelUploadResponse processSupplierDataFile(MultipartFile file) throws Exception {
@@ -73,7 +75,7 @@ public class ExcelProcessingService {
             loadExistingProductsToCache(suppliersInFile, productCache);
 
             List<Product> batchProducts = new ArrayList<>();
-            int batchSize = 5000; // Увеличена размер батча
+            int batchSize = 5000;
 
             for (int i = 1; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
@@ -109,10 +111,12 @@ public class ExcelProcessingService {
                     Product existingProduct = productCache.get(cacheKey);
 
                     if (existingProduct != null) {
-                        boolean changed = !Objects.equals(existingProduct.getProductName(), productName) ||
-                                !Objects.equals(existingProduct.getPriceWithVat(), price);
+                        // Проверяем изменения ПЕРЕД добавлением в batch
+                        boolean priceChanged = !Objects.equals(existingProduct.getPriceWithVat(), price);
+                        boolean nameChanged = !Objects.equals(existingProduct.getProductName(), productName);
 
-                        if (changed) {
+                        if (priceChanged || nameChanged) {
+                            // Только если есть реальные изменения - обновляем
                             existingProduct.setProductName(productName);
                             existingProduct.setPriceWithVat(price);
                             batchProducts.add(existingProduct);
@@ -131,8 +135,11 @@ public class ExcelProcessingService {
                         newRecords++;
                     }
 
+                    // Сохраняем батч и очищаем Hibernate кэш
                     if (batchProducts.size() >= batchSize) {
                         productRepository.saveAll(batchProducts);
+                        entityManager.flush(); // Выполняем все SQL операции
+                        entityManager.clear(); // Очищаем кэш Hibernate для экономии памяти
                         batchProducts.clear();
                     }
                 } catch (Exception e) {
@@ -141,8 +148,10 @@ public class ExcelProcessingService {
                 }
             }
 
+            // Сохраняем оставшиеся товары
             if (!batchProducts.isEmpty()) {
                 productRepository.saveAll(batchProducts);
+                entityManager.flush();
             }
 
             long processingTime = System.currentTimeMillis() - startTime;
