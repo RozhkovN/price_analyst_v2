@@ -65,13 +65,14 @@ function RegisterModal({
         },
       );
 
-      const { token, role } = response.data;
+      const { accessToken, refreshToken, role, expiresIn } = response.data;
 
       // Сохраняем данные в хранилище
       setUser({
-        token,
+        accessToken,
+        refreshToken,
         role,
-        // email: data.email,
+        tokenExpiresIn: expiresIn,
       });
       setIsAuth(true);
       setIsAdmin(role === "ADMIN");

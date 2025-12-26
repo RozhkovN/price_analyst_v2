@@ -1,7 +1,9 @@
 export interface User {
-  token?: string;
-  role?: "USER" | "ADMIN";
+  accessToken: string;
+  refreshToken: string;
+  role: "USER" | "ADMIN";
   email?: string;
+  tokenExpiresIn: number; // ms
 }
 
 export interface LoginFormData {
@@ -20,6 +22,17 @@ export interface RegisterFormData {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   role: "USER" | "ADMIN";
+  expiresIn: number; // ms
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  expiresIn: number; // ms
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
 }
