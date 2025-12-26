@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Slf4j
 @RestController
@@ -47,6 +49,7 @@ public class DataController {
     private final ProductRepository productRepository;
     private final SubscriptionService subscriptionService;
     private final ClientRepository clientRepository;
+    private final ObjectMapper objectMapper;
 
     @PostMapping(value = "/upload-supplier-data", consumes = "multipart/form-data")
     @Operation(summary = "Загрузка данных поставщиков", description = "Загрузка Excel файла с данными поставщиков и товаров")
@@ -171,77 +174,90 @@ public class DataController {
     @PostMapping("/export-results")
     @Operation(summary = "Выгрузка результата анализа в Excel", description = "Скачать Excel файл с результатами анализа цен")
     public void exportAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
-        @SuppressWarnings("unchecked")
-        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
-        
-        if (results == null || results.isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-        
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=price_analysis_export.xlsx");
-
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Результат анализа");
-
-            // Заголовки
-            Row headerRow = sheet.createRow(0);
-            String[] headers = {"Штрихкод", "Количество", "Наименование товара", "Поставщик", "Цена за единицу", "Общая сумма", "Требует ручной обработки", "Сообщение"};
-            for (int i = 0; i < headers.length; i++) {
-                headerRow.createCell(i).setCellValue(headers[i]);
+        try {
+            // Преобразуем List<LinkedHashMap> в List<PriceAnalysisResult>
+            List<PriceAnalysisResult> results = objectMapper.convertValue(
+                requestBody.get("results"),
+                new TypeReference<List<PriceAnalysisResult>>() {}
+            );
+            
+            if (results == null || results.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
             }
+            
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=price_analysis_export.xlsx");
 
-            // Данные
-            int rowNum = 1;
-            for (PriceAnalysisResult result : results) {
-                Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(result.getBarcode() != null ? result.getBarcode() : "");
-                row.createCell(1).setCellValue(result.getQuantity() != null ? result.getQuantity() : 0);
-                row.createCell(2).setCellValue(result.getProductName() != null ? result.getProductName() : "");
-                row.createCell(3).setCellValue(result.getSupplierName() != null ? result.getSupplierName() : "");
-                row.createCell(4).setCellValue(result.getUnitPrice() != null ? result.getUnitPrice() : 0.0);
-                row.createCell(5).setCellValue(result.getTotalPrice() != null ? result.getTotalPrice() : 0.0);
-                row.createCell(6).setCellValue(result.getRequiresManualProcessing() != null && result.getRequiresManualProcessing() ? "Да" : "Нет");
-                row.createCell(7).setCellValue(result.getMessage() != null ? result.getMessage() : "");
+            try (Workbook workbook = new XSSFWorkbook()) {
+                Sheet sheet = workbook.createSheet("Результат анализа");
+
+                // Заголовки
+                Row headerRow = sheet.createRow(0);
+                String[] headers = {"Штрихкод", "Количество", "Наименование товара", "Поставщик", "Цена за единицу", "Общая сумма", "Требует ручной обработки", "Сообщение"};
+                for (int i = 0; i < headers.length; i++) {
+                    headerRow.createCell(i).setCellValue(headers[i]);
+                }
+
+                // Данные
+                int rowNum = 1;
+                for (PriceAnalysisResult result : results) {
+                    Row row = sheet.createRow(rowNum++);
+                    row.createCell(0).setCellValue(result.getBarcode() != null ? result.getBarcode() : "");
+                    row.createCell(1).setCellValue(result.getQuantity() != null ? result.getQuantity() : 0);
+                    row.createCell(2).setCellValue(result.getProductName() != null ? result.getProductName() : "");
+                    row.createCell(3).setCellValue(result.getSupplierName() != null ? result.getSupplierName() : "");
+                    row.createCell(4).setCellValue(result.getUnitPrice() != null ? result.getUnitPrice() : 0.0);
+                    row.createCell(5).setCellValue(result.getTotalPrice() != null ? result.getTotalPrice() : 0.0);
+                    row.createCell(6).setCellValue(result.getRequiresManualProcessing() != null && result.getRequiresManualProcessing() ? "Да" : "Нет");
+                    row.createCell(7).setCellValue(result.getMessage() != null ? result.getMessage() : "");
+                }
+
+                // Авторазмер колонок
+                for (int i = 0; i < headers.length; i++) {
+                    sheet.autoSizeColumn(i);
+                }
+
+                workbook.write(response.getOutputStream());
             }
-
-            // Авторазмер колонок
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(response.getOutputStream());
+        } catch (Exception e) {
+            log.error("Ошибка экспорта результатов", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping("/export-supplier-results")
     @Operation(summary = "Выгрузка детального анализа цен в Excel", description = "Скачать Excel файл с детальным анализом всех цен по каждому товару")
     public void exportDetailedAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
-        @SuppressWarnings("unchecked")
-        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
-        
-        if (results == null || results.isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=detailed_price_analysis_export.xlsx");
+        try {
+            // Преобразуем List<LinkedHashMap> в List<PriceAnalysisResult>
+            List<PriceAnalysisResult> results = objectMapper.convertValue(
+                requestBody.get("results"),
+                new TypeReference<List<PriceAnalysisResult>>() {}
+            );
+            
+            if (results == null || results.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=detailed_price_analysis_export.xlsx");
 
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Детальный анализ цен");
+            try (Workbook workbook = new XSSFWorkbook()) {
+                Sheet sheet = workbook.createSheet("Детальный анализ цен");
 
-            // Создаем стили
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
+                // Создаем стили
+                CellStyle headerStyle = workbook.createCellStyle();
+                Font headerFont = workbook.createFont();
+                headerFont.setBold(true);
+                headerStyle.setFont(headerFont);
 
-            CellStyle numberStyle = workbook.createCellStyle();
-            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.00"));
+                CellStyle numberStyle = workbook.createCellStyle();
+                numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.00"));
 
-            CellStyle percentageStyle = workbook.createCellStyle();
-            percentageStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00\"%\""));
+                CellStyle percentageStyle = workbook.createCellStyle();
+                percentageStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00\"%\""));
 
             // Заголовки
             Row headerRow = sheet.createRow(0);
@@ -362,6 +378,9 @@ public class DataController {
             }
 
             workbook.write(response.getOutputStream());
+        } catch (Exception e) {
+            log.error("Ошибка экспорта детального анализа", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
