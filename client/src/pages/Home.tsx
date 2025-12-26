@@ -121,7 +121,7 @@ function Home() {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${user!.token}`,
+            Authorization: `Bearer ${user!.accessToken}`,
             "Content-Type": "multipart/form-data",
           },
         },
@@ -162,7 +162,7 @@ function Home() {
         {
           responseType: "blob",
           headers: {
-            Authorization: `Bearer ${user!.token}`,
+            Authorization: `Bearer ${user!.accessToken}`,
           },
         },
       );
@@ -190,7 +190,7 @@ function Home() {
         {
           responseType: "blob",
           headers: {
-            Authorization: `Bearer ${user!.token}`,
+            Authorization: `Bearer ${user!.accessToken}`,
           },
         },
       );

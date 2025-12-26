@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useAtom } from "jotai";
-import { userAtom, isAuthAtom, isAdminAtom, tokenExpirationAtom, accessTokenAtom } from "@/store/authStore";
+import { userAtom, isAuthAtom, isAdminAtom, tokenExpirationAtom } from "@/store/authStore";
 import type { User, RefreshTokenResponse } from "@/types/auth.type";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -9,8 +9,7 @@ export const useAuth = () => {
   const [user, setUser] = useAtom(userAtom);
   const [, setIsAuth] = useAtom(isAuthAtom);
   const [, setIsAdmin] = useAtom(isAdminAtom);
-  const [tokenExpiration, setTokenExpiration] = useAtom(tokenExpirationAtom);
-  const [accessToken] = useAtom(accessTokenAtom);
+  const [, setTokenExpiration] = useAtom(tokenExpirationAtom);
 
   const login = (userData: User) => {
     const expirationTime = Date.now() + userData.tokenExpiresIn;

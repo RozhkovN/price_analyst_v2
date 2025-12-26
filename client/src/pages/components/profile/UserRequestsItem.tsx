@@ -34,7 +34,7 @@ export const UserRequestItem = ({
 
   // Функция для скачивания Excel файла запроса
   const downloadRequestExcel = async (request: UserRequest) => {
-    if (!user?.token) {
+    if (!user?.accessToken) {
       onDownloadMessage("Ошибка авторизации");
       onDownloadMessageSuccess(false);
       return;

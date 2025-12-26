@@ -35,7 +35,7 @@ export const UserRequestsSection = ({
         `${API_URL}/profile/history`,
         {
           headers: {
-            Authorization: `Bearer ${user?.token || ""}`,
+            Authorization: `Bearer ${user?.accessToken || ""}`,
           },
         },
       );

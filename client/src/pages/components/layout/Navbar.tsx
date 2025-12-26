@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
 import Button from "../ui/Button";
-import { isAdminAtom, isAuthAtom, tokenExpirationAtom } from "@/store/authStore";
+import { isAdminAtom, isAuthAtom } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import type { Dispatch, SetStateAction } from "react";
@@ -13,7 +13,6 @@ interface NavbarProps {
 function Navbar({ setIsLoginModalOpen, setIsRegisterModalOpen }: NavbarProps) {
   const [isAuth] = useAtom(isAuthAtom);
   const [isAdmin] = useAtom(isAdminAtom);
-  const [, setTokenExpiration] = useAtom(tokenExpirationAtom);
   const { logout } = useAuth();
 
   const navigate = useNavigate();
