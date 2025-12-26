@@ -3,6 +3,7 @@ package org.example.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.util.TimeUtil;
 import java.time.LocalDateTime;
 
 @Entity
@@ -47,7 +48,7 @@ public class Client {
     private SubscriptionStatus subscriptionStatus = SubscriptionStatus.ACTIVE;
 
     @Builder.Default
-    private LocalDateTime registrationDate = LocalDateTime.now();
+    private LocalDateTime registrationDate = TimeUtil.nowMoscow();
 
     public enum SubscriptionStatus {
         ACTIVE, EXPIRED

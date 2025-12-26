@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.example.util.TimeUtil;
 
 @Entity
 @Table(name = "history")
@@ -44,7 +45,7 @@ public class History {
     private HistoryType historyType;
 
     @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now();
+    private LocalDateTime timestamp = TimeUtil.nowMoscow();
 
     public enum HistoryType {
         FILE_UPLOAD,

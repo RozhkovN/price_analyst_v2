@@ -6,6 +6,7 @@ import org.example.entity.*;
 import org.example.repository.ClientRepository;
 import org.example.repository.SubscriptionAuditRepository;
 import org.example.repository.SubscriptionRepository;
+import org.example.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,7 @@ public class SubscriptionService {
         if (subscriptionRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Подписка для этой почты уже существует");
         }
-        LocalDateTime expirationDate = LocalDateTime.now().plusMinutes(trialMinutes);
+        LocalDateTime expirationDate = TimeUtil.nowMoscow().plusMinutes(trialMinutes);
         Subscription subscription = Subscription.builder()
             .email(email)
             .expirationDate(expirationDate)
@@ -48,7 +49,7 @@ public class SubscriptionService {
         // 🔑 АДМИН имеет бесконечную подписку
         var client = clientRepository.findByEmail(email);
         if (client.isPresent() && client.get().getRole() == Role.ADMIN) {
-            LocalDateTime futureDate = LocalDateTime.now().plusYears(100);
+            LocalDateTime futureDate = TimeUtil.nowMoscow().plusYears(100);
             logAudit(email, SubscriptionAudit.Action.CHECK, "Проверка статуса админа (бесконечная подписка)");
             return SubscriptionStatusDto.builder()
                 .email(email)
@@ -59,7 +60,7 @@ public class SubscriptionService {
                 .build();
         }
         
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = TimeUtil.nowMoscow();
         boolean isExpired = subscription.getExpirationDate().isBefore(now);
         if (isExpired && subscription.getStatus() == Subscription.SubscriptionStatus.ACTIVE) {
             subscription.setStatus(Subscription.SubscriptionStatus.EXPIRED);
@@ -93,7 +94,7 @@ public class SubscriptionService {
                 return newSub;
             });
 
-        LocalDateTime newExpirationDate = LocalDateTime.now().plusMinutes(minutesToAdd);
+        LocalDateTime newExpirationDate = TimeUtil.nowMoscow().plusMinutes(minutesToAdd);
         subscription.setExpirationDate(newExpirationDate);
         subscription.setStatus(Subscription.SubscriptionStatus.ACTIVE);
         subscription.setRenewalCount(subscription.getRenewalCount() + 1);
@@ -128,12 +129,12 @@ public class SubscriptionService {
         }
 
         subscription.setStatus(Subscription.SubscriptionStatus.EXPIRED);
-        subscription.setExpirationDate(LocalDateTime.now());
-        subscription.setUpdatedAt(LocalDateTime.now());
+        subscription.setExpirationDate(TimeUtil.nowMoscow());
+        subscription.setUpdatedAt(TimeUtil.nowMoscow());
         subscriptionRepository.save(subscription);
 
         client.setSubscriptionStatus(Client.SubscriptionStatus.EXPIRED);
-        client.setSubscriptionExpiredAt(LocalDateTime.now());
+        client.setSubscriptionExpiredAt(TimeUtil.nowMoscow());
         clientRepository.save(client);
 
         logAudit(email, SubscriptionAudit.Action.REVOKE, "Подписка и клиент удалены администратором");
@@ -207,7 +208,7 @@ public class SubscriptionService {
 
     @Transactional
     private Subscription createNewSubscription(String email) {
-        LocalDateTime expirationDate = LocalDateTime.now().plusMinutes(1);
+        LocalDateTime expirationDate = TimeUtil.nowMoscow().plusMinutes(1);
         Subscription subscription = Subscription.builder()
             .email(email)
             .expirationDate(expirationDate)
@@ -223,7 +224,7 @@ public class SubscriptionService {
                 .email(email)
                 .action(action)
                 .details(details)
-                .timestamp(LocalDateTime.now())
+                .timestamp(TimeUtil.nowMoscow())
                 .build();
             auditRepository.save(audit);
         } catch (Exception e) {
@@ -232,7 +233,7 @@ public class SubscriptionService {
     }
 
     private Integer calculateMinutesRemaining(LocalDateTime expirationDate) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = TimeUtil.nowMoscow();
         if (expirationDate.isBefore(now)) return 0;
         return (int) java.time.temporal.ChronoUnit.MINUTES.between(now, expirationDate);
     }

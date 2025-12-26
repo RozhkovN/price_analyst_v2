@@ -1,6 +1,7 @@
 package org.example.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.util.TimeUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,7 +21,7 @@ public class ExceptionHandlerConfig {
         log.warn("IllegalArgumentException: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(Map.of(
             "error", ex.getMessage(),
-            "timestamp", LocalDateTime.now(),
+            "timestamp", TimeUtil.nowMoscow(),
             "status", 400
         ));
     }
@@ -31,7 +32,7 @@ public class ExceptionHandlerConfig {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
             "error", "Доступ запрещен",
             "message", ex.getMessage(),
-            "timestamp", LocalDateTime.now(),
+            "timestamp", TimeUtil.nowMoscow(),
             "status", 403
         ));
     }
@@ -42,7 +43,7 @@ public class ExceptionHandlerConfig {
         return ResponseEntity.internalServerError().body(Map.of(
             "error", "Внутренняя ошибка сервера",
             "message", ex.getMessage(),
-            "timestamp", LocalDateTime.now(),
+            "timestamp", TimeUtil.nowMoscow(),
             "status", 500
         ));
     }

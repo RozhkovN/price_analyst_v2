@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.entity.Client;
 import org.example.repository.ClientRepository;
+import org.example.util.TimeUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -126,7 +127,7 @@ public class JwtFilter extends OncePerRequestFilter {
             return true;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = TimeUtil.nowMoscow();
         if (client.getSubscriptionExpiredAt() != null && client.getSubscriptionExpiredAt().isBefore(now)) {
             client.setSubscriptionStatus(Client.SubscriptionStatus.EXPIRED);
             clientRepository.save(client);

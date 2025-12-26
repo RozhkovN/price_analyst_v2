@@ -3,6 +3,7 @@ package org.example.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import org.example.util.TimeUtil;
 
 @Entity
 @Table(name = "subscription_audit", indexes = {
@@ -30,7 +31,7 @@ public class SubscriptionAudit {
 
     @Column(nullable = false)
     @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now();
+    private LocalDateTime timestamp = TimeUtil.nowMoscow();
 
     public enum Action {
         CREATE_TRIAL, GRANT, RENEW, REVOKE, CHECK, EXPIRE

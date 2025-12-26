@@ -2,6 +2,7 @@ package org.example.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.util.TimeUtil;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,10 +32,10 @@ public class Subscription {
     private Integer renewalCount = 0;
 
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = TimeUtil.nowMoscow();
 
     @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = TimeUtil.nowMoscow();
 
     public enum SubscriptionStatus {
         ACTIVE, EXPIRED, PENDING
