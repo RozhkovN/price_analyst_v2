@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -13,9 +14,14 @@ import org.example.dto.ExcelUploadResponse;
 import org.example.dto.PriceAnalysisResult;
 import org.example.entity.Product;
 import org.example.repository.ProductRepository;
+import org.example.repository.ClientRepository;
 import org.example.service.ExcelProcessingService;
 import org.example.service.PriceAnalysisService;
+import org.example.service.SubscriptionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -29,6 +35,7 @@ import java.util.Map;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/data")
 @RequiredArgsConstructor
@@ -38,6 +45,8 @@ public class DataController {
     private final ExcelProcessingService excelProcessingService;
     private final PriceAnalysisService priceAnalysisService;
     private final ProductRepository productRepository;
+    private final SubscriptionService subscriptionService;
+    private final ClientRepository clientRepository;
 
     @PostMapping(value = "/upload-supplier-data", consumes = "multipart/form-data")
     @Operation(summary = "Загрузка данных поставщиков", description = "Загрузка Excel файла с данными поставщиков и товаров")
@@ -45,19 +54,39 @@ public class DataController {
             @Parameter(description = "Excel файл с данными поставщиков", required = true)
             @RequestParam("file") MultipartFile file) {
 
+        // 🔒 Проверка подписки
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String phone = auth.getName();
+        var client = clientRepository.findByPhone(phone);
+        
+        if (client.isEmpty()) {
+            log.error("Client not found for phone: {}", phone);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Клиент не найден"));
+        }
+
+        String email = client.get().getEmail();
+        if (!subscriptionService.isSubscriptionActive(email)) {
+            log.warn("User {} tried to upload supplier data but subscription is expired", email);
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                    .body(Map.of("error", "Подписка истекла. Пожалуйста, продлите подписку"));
+        }
+
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("Файл не должен быть пустым");
+            return ResponseEntity.badRequest().body(Map.of("error", "Файл не должен быть пустым"));
         }
 
         if (!file.getOriginalFilename().endsWith(".xlsx") && !file.getOriginalFilename().endsWith(".xls")) {
-            return ResponseEntity.badRequest().body("Поддерживаются только Excel файлы (.xlsx, .xls)");
+            return ResponseEntity.badRequest().body(Map.of("error", "Поддерживаются только Excel файлы (.xlsx, .xls)"));
         }
 
         try {
             ExcelUploadResponse response = excelProcessingService.processSupplierDataFile(file);
+            log.info("Данные поставщиков загружены пользователем: {}", email);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Ошибка обработки файла: " + e.getMessage());
+            log.error("Ошибка при загрузке данных поставщиков для {}: {}", email, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка обработки файла: " + e.getMessage()));
         }
     }
 
@@ -67,19 +96,39 @@ public class DataController {
             @Parameter(description = "Excel файл с товарами для анализа", required = true)
             @RequestParam("file") MultipartFile file) {
 
+        // 🔒 Проверка подписки
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String phone = auth.getName();
+        var client = clientRepository.findByPhone(phone);
+        
+        if (client.isEmpty()) {
+            log.error("Client not found for phone: {}", phone);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Клиент не найден"));
+        }
+
+        String email = client.get().getEmail();
+        if (!subscriptionService.isSubscriptionActive(email)) {
+            log.warn("User {} tried to analyze prices but subscription is expired", email);
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                    .body(Map.of("error", "Подписка истекла. Пожалуйста, продлите подписку"));
+        }
+
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("Файл не должен быть пустым");
+            return ResponseEntity.badRequest().body(Map.of("error", "Файл не должен быть пустым"));
         }
 
         if (!file.getOriginalFilename().endsWith(".xlsx") && !file.getOriginalFilename().endsWith(".xls")) {
-            return ResponseEntity.badRequest().body("Поддерживаются только Excel файлы (.xlsx, .xls)");
+            return ResponseEntity.badRequest().body(Map.of("error", "Поддерживаются только Excel файлы (.xlsx, .xls)"));
         }
 
         try {
             List<PriceAnalysisResult> results = priceAnalysisService.analyzePrices(file);
+            log.info("Анализ цен выполнен для пользователя: {} ({} товаров)", email, results.size());
             return ResponseEntity.ok(results);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Ошибка обработки файла: " + e.getMessage());
+            log.error("Ошибка при анализе цен для {}: {}", email, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка обработки файла: " + e.getMessage()));
         }
     }
 

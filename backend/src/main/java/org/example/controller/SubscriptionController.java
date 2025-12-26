@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.GrantSubscriptionRequest;
-import org.example.dto.RequestRenewalRequest;
 import org.example.dto.SubscriptionStatusResponse;
 import org.example.repository.ClientRepository;
 import org.example.service.SubscriptionService;
@@ -15,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,10 +27,6 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
     private final ClientRepository clientRepository;
 
-    /**
-     * Проверить статус подписки текущего пользователя
-     * GET /api/subscription/check
-     */
     @GetMapping("/check")
     public ResponseEntity<SubscriptionStatusResponse> checkSubscription(
             @RequestParam(required = false) String email) {
@@ -42,29 +36,20 @@ public class SubscriptionController {
             boolean isAdmin = auth.getAuthorities().stream()
                     .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
             
-            log.debug("checkSubscription called - auth: {}, isAdmin: {}, paramEmail: {}", auth.getName(), isAdmin, email);
-            
             if (email != null) {
-                // Параметр email может просматривать только ADMIN
                 if (!isAdmin) {
                     log.warn("User {} tried to check other user's subscription but is not ADMIN", auth.getName());
                     return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
                 }
                 targetEmail = email;
             } else {
-                // Получаем email из контекста
-                // auth.getName() возвращает phone (это username в JWT)
-                // Нужно найти email по phone
                 String phone = auth.getName();
-                log.debug("Looking for email by phone: {}", phone);
-                
                 var client = clientRepository.findByPhone(phone);
                 if (client.isEmpty()) {
                     log.error("Client not found for phone: {}", phone);
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
                 }
                 targetEmail = client.get().getEmail();
-                log.debug("Found email: {} for phone: {}", targetEmail, phone);
             }
 
             var status = subscriptionService.checkSubscriptionStatus(targetEmail);
@@ -77,7 +62,6 @@ public class SubscriptionController {
                     .minutesRemaining(status.getMinutesRemaining())
                     .build();
 
-            log.debug("Subscription status returned: {}", response);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             log.error("Error checking subscription: {}", e.getMessage());
@@ -88,68 +72,95 @@ public class SubscriptionController {
         }
     }
 
-    /**
-     * Выдать подписку клиенту (только для ADMIN)
-     * POST /api/subscription/grant
-     */
     @PostMapping("/grant")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> grantSubscription(
+    public ResponseEntity<Map<String, Object>> grantSubscription(
             @RequestBody GrantSubscriptionRequest request) {
         try {
             if (request.getEmail() == null || request.getEmail().isEmpty()) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(Map.of("error", "Email не может быть пустым"));
             }
             if (request.getMinutesToAdd() == null || request.getMinutesToAdd() <= 0) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(Map.of("error", "Количество минут должно быть положительным"));
             }
 
             subscriptionService.grantSubscription(request.getEmail(), request.getMinutesToAdd());
 
-            Map<String, String> response = new HashMap<>();
+            var status = subscriptionService.checkSubscriptionStatus(request.getEmail());
+            Map<String, Object> response = new HashMap<>();
             response.put("message", "Подписка выдана успешно");
             response.put("email", request.getEmail());
-            response.put("minutesAdded", request.getMinutesToAdd().toString());
+            response.put("minutesAdded", request.getMinutesToAdd());
+            response.put("expirationDate", status.getExpirationDate());
+            response.put("minutesRemaining", status.getMinutesRemaining());
 
             log.info("Подписка выдана: {} на {} минут", request.getEmail(), request.getMinutesToAdd());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             log.error("Ошибка при выдаче подписки: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * Удалить подписку и клиента (только для ADMIN)
-     * DELETE /api/subscription/revoke
-     */
+    @PostMapping("/renew")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> renewSubscription(
+            @RequestBody GrantSubscriptionRequest request) {
+        try {
+            if (request.getEmail() == null || request.getEmail().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Email не может быть пустым"));
+            }
+            if (request.getMinutesToAdd() == null || request.getMinutesToAdd() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Количество минут должно быть положительным"));
+            }
+
+            subscriptionService.renewSubscription(request.getEmail(), request.getMinutesToAdd());
+            var status = subscriptionService.checkSubscriptionStatus(request.getEmail());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Подписка продлена успешно");
+            response.put("email", request.getEmail());
+            response.put("minutesAdded", request.getMinutesToAdd());
+            response.put("expirationDate", status.getExpirationDate());
+            response.put("minutesRemaining", status.getMinutesRemaining());
+
+            log.info("Подписка продлена: {} на {} минут", request.getEmail(), request.getMinutesToAdd());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка при продлении подписки: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/revoke")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> revokeSubscription(
             @RequestParam String email) {
         try {
             if (email == null || email.isEmpty()) {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body(Map.of("error", "Email не может быть пустым"));
             }
 
             subscriptionService.revokeSubscription(email);
 
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Подписка и клиент удалены");
+            response.put("message", "Подписка отозвана");
             response.put("email", email);
 
-            log.info("Подписка и клиент удалены: {}", email);
+            log.info("Подписка отозвана: {}", email);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            log.error("Ошибка при удалении подписки: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            log.error("Ошибка при отзыве подписки: {}", e.getMessage());
+            
+            // Специальная обработка для админа
+            if (e.getMessage().contains("администратора")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", e.getMessage()));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * Получить информацию о trial периоде
-     * GET /api/subscription/trial-info
-     */
     @GetMapping("/trial-info")
     public ResponseEntity<Map<String, Integer>> getTrialInfo() {
         Map<String, Integer> response = new HashMap<>();
@@ -157,3 +168,4 @@ public class SubscriptionController {
         return ResponseEntity.ok(response);
     }
 }
+

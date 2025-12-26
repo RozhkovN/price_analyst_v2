@@ -1,5 +1,6 @@
 package org.example.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.security.JwtFilter;
 import org.example.security.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -31,6 +33,7 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
+        log.info("SecurityConfig initialized");
     }
 
     @Bean
@@ -41,14 +44,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                        .requestMatchers("/api/subscription/**").permitAll()  // Пусть контроллер сам проверяет авторизацию
-                        .requestMatchers("/api/data/upload-supplier-data").hasRole("ADMIN")  // Только админ
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  // Новый эндпоинт для админа
+                        .requestMatchers("/api/subscription/**").permitAll()
+                        .requestMatchers("/api/data/upload-supplier-data").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/data/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
+        log.info("Security filter chain configured");
         return http.build();
     }
 

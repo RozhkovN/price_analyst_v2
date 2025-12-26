@@ -41,9 +41,11 @@ public class AuthService {
     @Transactional
     public Client registerClient(RegistrationRequest request) {
         if (!validateInn(request.getInn())) {
+            log.warn("Registration attempt with invalid INN format: {}", request.getInn());
             throw new IllegalArgumentException("Неверный формат ИНН");
         }
         if (clientRepository.existsByInn(request.getInn())) {
+            log.warn("Registration attempt with existing INN: {}", request.getInn());
             throw new IllegalArgumentException("Клиент с таким ИНН уже зарегистрирован");
         }
 
@@ -55,12 +57,15 @@ public class AuthService {
         String password = request.getPassword().replaceAll("[\\r\\n\\t]", "");
 
         if (phone == null) {
+            log.warn("Registration attempt with invalid phone format: {}", request.getPhone());
             throw new IllegalArgumentException("Неверный формат телефона");
         }
         if (clientRepository.findByPhone(phone).isPresent()) {
+            log.warn("Registration attempt with existing phone: {}", phone);
             throw new IllegalArgumentException("Клиент с таким телефоном уже зарегистрирован");
         }
         if (clientRepository.findByEmail(email).isPresent()) {
+            log.warn("Registration attempt with existing email: {}", email);
             throw new IllegalArgumentException("Клиент с таким email уже зарегистрирован");
         }
 
@@ -93,6 +98,7 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         String phone = normalizePhone(request.getPhone());
         if (phone == null) {
+            log.warn("Login attempt with invalid phone format: {}", request.getPhone());
             throw new IllegalArgumentException("Неверный формат телефона");
         }
 
@@ -101,7 +107,9 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(phone, request.getPassword())
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String token = jwtUtil.generateToken(phone);
+            
+            String accessToken = jwtUtil.generateAccessToken(phone);
+            String refreshToken = jwtUtil.generateRefreshToken(phone);
 
             // Получаем клиента по телефону и извлекаем роль
             Client client = clientRepository.findByPhone(phone)
@@ -109,11 +117,45 @@ public class AuthService {
             Role role = client.getRole();
 
             log.info("Успешная авторизация для телефона: {}, роль: {}", phone, role);
-            return new LoginResponse(token, role);
+            return LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .role(role)
+                    .expiresIn(jwtUtil.getAccessTokenExpiration())
+                    .build();
         } catch (BadCredentialsException e) {
             log.warn("Неудачная попытка авторизации для телефона: {}, причина: неверный пароль", phone);
             throw new IllegalArgumentException("Неверный телефон или пароль");
         }
+    }
+
+    /**
+     * Обновляет access token используя refresh token
+     */
+    public LoginResponse refreshAccessToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            log.warn("Refresh token is empty");
+            throw new IllegalArgumentException("Refresh token не может быть пустым");
+        }
+
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
+            log.warn("Invalid refresh token");
+            throw new IllegalArgumentException("Refresh token недействителен или истек");
+        }
+
+        String phone = jwtUtil.extractUsername(refreshToken);
+        Client client = clientRepository.findByPhone(phone)
+                .orElseThrow(() -> new IllegalArgumentException("Клиент не найден"));
+
+        String newAccessToken = jwtUtil.generateAccessToken(phone);
+        
+        log.info("Токен обновлен для пользователя: {}", phone);
+        return LoginResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken) // возвращаем старый refresh token, он еще валиден
+                .role(client.getRole())
+                .expiresIn(jwtUtil.getAccessTokenExpiration())
+                .build();
     }
 
     private String normalizePhone(String phone) {

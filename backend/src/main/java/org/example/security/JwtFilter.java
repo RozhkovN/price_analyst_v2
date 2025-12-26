@@ -44,12 +44,23 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(token);
-            log.debug("Extracted username from token: {}", username);
+            try {
+                username = jwtUtil.extractUsername(token);
+                log.debug("Extracted username from token: {}", username);
+            } catch (Exception e) {
+                log.debug("Failed to extract username from token: {}", e.getMessage());
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
+                // 🔒 Валидируем что это access token
+                if (!jwtUtil.validateAccessToken(token)) {
+                    log.warn("Invalid or expired access token for: {}", username);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 log.debug("UserDetails loaded: {}", userDetails.getUsername());
 
@@ -59,7 +70,8 @@ public class JwtFilter extends OncePerRequestFilter {
                     // Проверяем статус подписки перед установкой аутентификации
                     if (!isSubscriptionValid(username, request)) {
                         log.warn("Доступ запрещен для {}: подписка истекла", username);
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setStatus(HttpServletResponse.SC_PAYMENT_REQUIRED);
+                        response.setContentType("application/json");
                         response.getWriter().write("{\"error\": \"Ваша подписка истекла. Пожалуйста, обновите подписку\"}");
                         return;
                     }
