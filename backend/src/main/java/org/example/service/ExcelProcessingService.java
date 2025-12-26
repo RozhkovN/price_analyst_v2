@@ -56,6 +56,7 @@ public class ExcelProcessingService {
             log.info("Detected columns - SupplierName: {}, Barcode: {}, ProductName: {}, Price: {}", supplierNameCol, barcodeCol, productNameCol, priceCol);
 
             // Подготовка поставщиков перед обработкой
+            long scanStart = System.currentTimeMillis();
             int totalRows = sheet.getLastRowNum();
             Set<String> suppliersInFile = new HashSet<>();
             for (int i = 1; i <= totalRows; i++) {
@@ -67,13 +68,21 @@ public class ExcelProcessingService {
                     }
                 }
             }
+            log.info("📄 Сканирование файла: {} мс ({} строк, {} поставщиков)", 
+                System.currentTimeMillis() - scanStart, totalRows, suppliersInFile.size());
             
             // Массовая загрузка поставщиков
+            long supplierStart = System.currentTimeMillis();
             ensureSuppliersExist(suppliersInFile);
+            log.info("📦 Загрузка поставщиков: {} мс", System.currentTimeMillis() - supplierStart);
             
             // Загрузка существующих товаров в кэш (оптимизировано)
+            long cacheStart = System.currentTimeMillis();
             loadExistingProductsToCache(suppliersInFile, productCache);
+            log.info("🗂️ Загрузка товаров в кэш: {} мс ({} товаров)", 
+                System.currentTimeMillis() - cacheStart, productCache.size());
 
+            long processStart = System.currentTimeMillis();
             List<Product> batchProducts = new ArrayList<>();
             int batchSize = 5000;
 
@@ -138,8 +147,8 @@ public class ExcelProcessingService {
                     // Сохраняем батч и очищаем Hibernate кэш
                     if (batchProducts.size() >= batchSize) {
                         productRepository.saveAll(batchProducts);
-                        entityManager.flush(); // Выполняем все SQL операции
-                        entityManager.clear(); // Очищаем кэш Hibernate для экономии памяти
+                        entityManager.flush();
+                        entityManager.clear();
                         batchProducts.clear();
                     }
                 } catch (Exception e) {
@@ -155,6 +164,8 @@ public class ExcelProcessingService {
             }
 
             long processingTime = System.currentTimeMillis() - startTime;
+            log.info("⏱️  Обработка строк: {} мс", System.currentTimeMillis() - processStart);
+            
             String message = String.format("Добавлено: %d, обновлено: %d, без изменений: %d, пропущено дубликатов: %d, ошибок: %d. Время: %d мс",
                     newRecords, updatedRecords, unchangedRecords, skipped, failed, processingTime);
 
@@ -166,7 +177,7 @@ public class ExcelProcessingService {
             response.setProcessedRecords(newRecords + updatedRecords);
             response.setFailedRecords(failed);
 
-            log.info("Обработка завершена: {} (Обработано {} записей/сек)", message, 
+            log.info("✅ Обработка завершена: {} (Обработано {} записей/сек)", message, 
                 Math.round(totalRows / (processingTime / 1000.0)));
 
             return response;
