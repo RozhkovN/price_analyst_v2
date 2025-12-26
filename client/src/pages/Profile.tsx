@@ -21,10 +21,10 @@ function Profile() {
   const { isExpired, isChecking } = useSubscriptionStatus();
 
   useEffect(() => {
-    if (!user?.token) navigate("/");
+    if (!user?.accessToken) navigate("/");
   }, [user, navigate]);
 
-  if (!user?.token) {
+  if (!user?.accessToken) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-xl">Перенаправление...</div>

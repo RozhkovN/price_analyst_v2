@@ -8,7 +8,7 @@ export function useSubscriptionStatus() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!user?.token) {
+    if (!user?.accessToken) {
       setIsChecking(false);
       return;
     }
@@ -18,7 +18,7 @@ export function useSubscriptionStatus() {
         const res = await axios.get(
           `${import.meta.env.VITE_API_URL}/subscription/check`,
           {
-            headers: { Authorization: `Bearer ${user.token}` },
+            headers: { Authorization: `Bearer ${user.accessToken}` },
           },
         );
         setIsExpired(res.data.isExpired);
