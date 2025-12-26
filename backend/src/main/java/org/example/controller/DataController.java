@@ -476,4 +476,69 @@ public class DataController {
             workbook.write(response.getOutputStream());
         }
     }
+
+    @PostMapping("/export-results")
+    @Operation(summary = "Алиас для /export-analysis")
+    public void exportResults(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
+        @SuppressWarnings("unchecked")
+        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
+        exportAnalysis(results, response);
+    }
+
+    @PostMapping("/export-supplier-results")
+    @Operation(summary = "Экспорт результатов для конкретного поставщика")
+    public void exportSupplierResults(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
+        String supplierName = (String) requestBody.get("supplierName");
+        @SuppressWarnings("unchecked")
+        List<PriceAnalysisResult> results = (List<PriceAnalysisResult>) requestBody.get("results");
+
+        if (supplierName == null || supplierName.isEmpty() || results == null || results.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        // Фильтруем результаты по поставщику
+        List<PriceAnalysisResult> filteredResults = results.stream()
+                .filter(r -> supplierName.equals(r.getSupplierName()))
+                .collect(Collectors.toList());
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=supplier_" + supplierName.replaceAll("[^a-zA-Z0-9.-]", "_") + "_results.xlsx");
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Результаты");
+
+            // Заголовки
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Штрихкод", "Количество", "Наименование товара", "Цена за единицу", "Общая сумма"};
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            // Данные
+            int rowNum = 1;
+            double totalSum = 0;
+            for (PriceAnalysisResult result : filteredResults) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(result.getBarcode() != null ? result.getBarcode() : "");
+                row.createCell(1).setCellValue(result.getQuantity() != null ? result.getQuantity() : 0);
+                row.createCell(2).setCellValue(result.getProductName() != null ? result.getProductName() : "");
+                row.createCell(3).setCellValue(result.getUnitPrice() != null ? result.getUnitPrice() : 0.0);
+                row.createCell(4).setCellValue(result.getTotalPrice() != null ? result.getTotalPrice() : 0.0);
+                totalSum += result.getTotalPrice() != null ? result.getTotalPrice() : 0.0;
+            }
+
+            // Добавляем итого
+            Row totalRow = sheet.createRow(rowNum);
+            totalRow.createCell(3).setCellValue("Итого:");
+            totalRow.createCell(4).setCellValue(totalSum);
+
+            // Авторазмер колонок
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(response.getOutputStream());
+        }
+    }
 }
