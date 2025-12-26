@@ -194,7 +194,7 @@ public class ExcelProcessingService {
         // Загружаем все товары за один запрос используя IN запрос
         List<Product> allProducts = productRepository.findBySupplierNameIn(supplierNames);
         for (Product product : allProducts) {
-            String key = product.getSupplier().getName() + "|" + product.getBarcode();
+            String key = product.getSupplier().getSupplierName() + "|" + product.getBarcode();
             cache.put(key, product);
         }
         
