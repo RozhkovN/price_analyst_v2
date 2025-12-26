@@ -175,7 +175,6 @@ public class DataController {
     @Operation(summary = "Выгрузка результата анализа в Excel", description = "Скачать Excel файл с результатами анализа цен")
     public void exportAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
         try {
-            // Преобразуем List<LinkedHashMap> в List<PriceAnalysisResult>
             List<PriceAnalysisResult> results = objectMapper.convertValue(
                 requestBody.get("results"),
                 new TypeReference<List<PriceAnalysisResult>>() {}
@@ -230,7 +229,6 @@ public class DataController {
     @Operation(summary = "Выгрузка детального анализа цен в Excel", description = "Скачать Excel файл с детальным анализом всех цен по каждому товару")
     public void exportDetailedAnalysis(@RequestBody Map<String, Object> requestBody, HttpServletResponse response) throws IOException {
         try {
-            // Преобразуем List<LinkedHashMap> в List<PriceAnalysisResult>
             List<PriceAnalysisResult> results = objectMapper.convertValue(
                 requestBody.get("results"),
                 new TypeReference<List<PriceAnalysisResult>>() {}
@@ -240,7 +238,6 @@ public class DataController {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
-            
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=detailed_price_analysis_export.xlsx");
 
@@ -249,15 +246,15 @@ public class DataController {
 
                 // Создаем стили
                 CellStyle headerStyle = workbook.createCellStyle();
-                Font headerFont = workbook.createFont();
-                headerFont.setBold(true);
-                headerStyle.setFont(headerFont);
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
 
-                CellStyle numberStyle = workbook.createCellStyle();
-                numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.00"));
+            CellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.00"));
 
-                CellStyle percentageStyle = workbook.createCellStyle();
-                percentageStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00\"%\""));
+            CellStyle percentageStyle = workbook.createCellStyle();
+            percentageStyle.setDataFormat(workbook.createDataFormat().getFormat("0.00\"%\""));
 
             // Заголовки
             Row headerRow = sheet.createRow(0);
@@ -378,6 +375,7 @@ public class DataController {
             }
 
             workbook.write(response.getOutputStream());
+            }
         } catch (Exception e) {
             log.error("Ошибка экспорта детального анализа", e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
