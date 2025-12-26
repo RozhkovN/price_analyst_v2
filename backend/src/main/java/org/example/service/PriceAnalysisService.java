@@ -38,12 +38,12 @@ public class PriceAnalysisService {
                 throw new IllegalArgumentException("Не найдены необходимые заголовки 'Штрихкод' или 'Количество' в файле. Убедитесь, что файл предназначен для анализа цен.");
             }
 
+            long parseStart = System.currentTimeMillis();
             List<String> barcodes = new ArrayList<>();
             Map<String, Integer> barcodeQuantities = new HashMap<>();
+            List<Map<String, Object>> fileContent = new ArrayList<>();
 
-            // Парсим файл для сохранения содержимого с очисткой
-            List<Map<String, Object>> fileContent = parseExcelToJson(file);
-
+            // Одноразовый парс файла с сохранением содержимого и сбором штрихкодов
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -58,13 +58,34 @@ public class PriceAnalysisService {
                 barcode = barcode.trim();
                 barcodes.add(barcode);
                 barcodeQuantities.put(barcode, quantity);
+                
+                // Собираем данные для истории
+                Map<String, Object> rowData = new HashMap<>();
+                for (int j = 0; j < row.getLastCellNum(); j++) {
+                    Cell cell = row.getCell(j);
+                    Object value = getCellValue(cell);
+                    if (value instanceof String) {
+                        value = ((String) value).replaceAll("[\\r\\n\\t]", "");
+                    }
+                    rowData.put("column_" + j, value);
+                }
+                fileContent.add(rowData);
             }
+            
+            log.info("📄 Парсинг файла: {} мс ({} штрихкодов)", 
+                System.currentTimeMillis() - parseStart, barcodes.size());
 
             if (barcodes.isEmpty()) {
                 return results;
             }
 
+            // Загружаем товары за один запрос с использованием индекса
+            long dbStart = System.currentTimeMillis();
             List<Product> products = productRepository.findByBarcodesOrderedByPrice(barcodes);
+            log.info("🗄️ Загрузка товаров: {} мс ({} товаров)", 
+                System.currentTimeMillis() - dbStart, products.size());
+            
+            // Кэшируем минимальную цену по каждому штрихкоду
             Map<String, Product> minPriceProducts = new HashMap<>();
             for (Product p : products) {
                 String bc = p.getBarcode();
@@ -73,6 +94,7 @@ public class PriceAnalysisService {
                 }
             }
 
+            // Формируем результаты в памяти
             for (Map.Entry<String, Integer> entry : barcodeQuantities.entrySet()) {
                 String barcode = entry.getKey();
                 Integer quantity = entry.getValue();
@@ -104,7 +126,9 @@ public class PriceAnalysisService {
                         .build());
             }
 
-            log.info("Анализ завершен за {} мс для {} элементов", (System.currentTimeMillis() - startTime), results.size());
+            long totalTime = System.currentTimeMillis() - startTime;
+            log.info("✅ Анализ завершен за {} мс для {} элементов ({} записей/сек)", 
+                totalTime, results.size(), Math.round(barcodes.size() / (totalTime / 1000.0)));
 
             String requestDetails = "Анализ цен: файл " + file.getOriginalFilename();
             String responseDetails = objectMapper.writeValueAsString(results);
@@ -115,40 +139,6 @@ public class PriceAnalysisService {
             log.error("Ошибка обработки файла", e);
             throw new RuntimeException("Ошибка обработки файла: " + e.getMessage());
         }
-    }
-
-    private List<Map<String, Object>> parseExcelToJson(MultipartFile file) throws Exception {
-        List<Map<String, Object>> data = new ArrayList<>();
-        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
-            Sheet sheet = workbook.getSheetAt(0);
-            Row headerRow = sheet.getRow(0);
-            if (headerRow == null) return data;
-
-            List<String> headers = new ArrayList<>();
-            for (Cell cell : headerRow) {
-                headers.add(getCellStringValue(cell));
-            }
-
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) continue;
-
-                Map<String, Object> rowData = new HashMap<>();
-                for (int j = 0; j < headers.size(); j++) {
-                    String header = headers.get(j);
-                    if (header != null && !header.trim().isEmpty()) {
-                        Object value = getCellValue(row.getCell(j));
-                        // Очистка от управляющих символов
-                        if (value instanceof String) {
-                            value = ((String) value).replaceAll("[\\r\\n\\t]", "");
-                        }
-                        rowData.put(header, value);
-                    }
-                }
-                data.add(rowData);
-            }
-        }
-        return data;
     }
 
     private String getCellStringValue(Cell cell) {
