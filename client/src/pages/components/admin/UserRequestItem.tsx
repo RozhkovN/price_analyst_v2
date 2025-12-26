@@ -76,7 +76,7 @@ export const UserRequestItem = ({
           responseType: "blob",
           headers: {
             "Content-Type": "application/json",
-            ...(user?.token && { Authorization: `Bearer ${user.token}` }),
+            ...(user?.accessToken && { Authorization: `Bearer ${user.accessToken}` }),
           },
         },
       );

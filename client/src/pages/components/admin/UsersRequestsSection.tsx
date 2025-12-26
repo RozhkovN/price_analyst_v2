@@ -65,9 +65,9 @@ export const UserRequestsSection = ({
       const response = await axios.get<AdminUserRequest[]>(
         `${API_URL}/admin/file-upload-history`,
         {
-          headers: user?.token
+          headers: user?.accessToken
             ? {
-                Authorization: `Bearer ${user.token}`,
+                Authorization: `Bearer ${user.accessToken}`,
               }
             : {},
         },

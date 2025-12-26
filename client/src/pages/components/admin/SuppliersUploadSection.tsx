@@ -75,7 +75,7 @@ export const SuppliersUploadSection = ({
         formData,
         {
           headers: {
-            ...(user?.token && { Authorization: `Bearer ${user.token}` }),
+            ...(user?.accessToken && { Authorization: `Bearer ${user.accessToken}` }),
             "Content-Type": "multipart/form-data",
           },
         },
