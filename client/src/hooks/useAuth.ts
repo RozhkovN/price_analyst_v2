@@ -9,7 +9,7 @@ export const useAuth = () => {
   const [user, setUser] = useAtom(userAtom);
   const [, setIsAuth] = useAtom(isAuthAtom);
   const [, setIsAdmin] = useAtom(isAdminAtom);
-  const [, setTokenExpiration] = useAtom(tokenExpirationAtom);
+  const [tokenExpiration, setTokenExpiration] = useAtom(tokenExpirationAtom);
 
   const login = (userData: User) => {
     const expirationTime = Date.now() + userData.tokenExpiresIn;
