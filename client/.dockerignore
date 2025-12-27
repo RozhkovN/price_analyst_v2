@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+package-lock.json
+bun.lockb
+
+# Build output
+dist/
+build/
+
+# Development
+.vite/
+.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+
+# Misc
+README.md

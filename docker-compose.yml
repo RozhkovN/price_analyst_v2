@@ -3,14 +3,18 @@ services:
     image: postgres:16-alpine
     container_name: price-service-db
     restart: unless-stopped
+    command: postgres -c shared_buffers=256MB -c max_connections=200 -c effective_cache_size=512MB
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -28,6 +32,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVER_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     environment:
       # Подключение к БД - ВНУТРИ контейнера используем порт 5432
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
@@ -50,8 +60,8 @@ services:
       SPRING_MVC_CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS}
       SPRING_MVC_CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS}
 
-      # Swagger
-      SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED}
+      # Swagger - отключен в продакшене по умолчанию
+      SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED:-false}
 
       # JWT - маппируем на свойства Spring Boot
       JWT.SECRET: ${JWT_SECRET}
@@ -71,6 +81,11 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - appnet
 
@@ -89,6 +104,11 @@ services:
       # Для Let's Encrypt сертификатов (когда будут подключены)
       - ./certs:/etc/nginx/ssl:ro
       - ./certbot:/var/www/certbot
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - app
     networks:

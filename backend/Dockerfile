@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile
 
 # Этап 1: Сборка приложения
-FROM eclipse-temurin:22-jdk AS builder
+FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /app
 
 # Устанавливаем maven
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn clean package -DskipTests
 
 # Этап 2: Runtime-образ для продакшена
-FROM eclipse-temurin:22-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Создаём пользователя для запуска приложения
