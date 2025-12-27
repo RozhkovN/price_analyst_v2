@@ -6,6 +6,9 @@
 
 set -e
 
+# Получаем директорию скрипта
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Параметры
-BACKUP_DIR="./backups"
+BACKUP_DIR="$SCRIPT_DIR/backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/db_backup_$TIMESTAMP.sql.gz"
 CONTAINER_NAME="price-service-db"
@@ -29,10 +32,10 @@ echo -e "${YELLOW}🔄 Начинаю бекап базы данных...${NC}"
 echo -e "${YELLOW}⏰ Время: $(date '+%Y-%m-%d %H:%M:%S')${NC}"
 
 # Загружаем переменные окружения из .env
-if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    export $(cat "$SCRIPT_DIR/.env" | grep -v '^#' | xargs)
 else
-    echo -e "${RED}❌ Ошибка: файл .env не найден${NC}"
+    echo -e "${RED}❌ Ошибка: файл .env не найден в $SCRIPT_DIR${NC}"
     exit 1
 fi
 

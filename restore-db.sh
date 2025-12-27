@@ -9,6 +9,9 @@
 
 set -e
 
+# Получаем директорию скрипта
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,7 +19,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-BACKUP_DIR="./backups"
+BACKUP_DIR="$SCRIPT_DIR/backups"
 CONTAINER_NAME="price-service-db"
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
@@ -25,10 +28,10 @@ echo -e "${BLUE}╚════════════════════�
 echo ""
 
 # Загружаем переменные окружения из .env
-if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    export $(cat "$SCRIPT_DIR/.env" | grep -v '^#' | xargs)
 else
-    echo -e "${RED}❌ Ошибка: файл .env не найден${NC}"
+    echo -e "${RED}❌ Ошибка: файл .env не найден в $SCRIPT_DIR${NC}"
     exit 1
 fi
 

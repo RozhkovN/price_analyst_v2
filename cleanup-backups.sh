@@ -6,13 +6,16 @@
 
 set -e
 
+# Получаем директорию скрипта
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-BACKUP_DIR="./backups"
+BACKUP_DIR="$SCRIPT_DIR/backups"
 DAYS=${1:-30}  # По умолчанию 30 дней
 
 if [ ! -d "$BACKUP_DIR" ]; then
